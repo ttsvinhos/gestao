@@ -829,7 +829,7 @@ function vCatalogo(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
   <p class="sub">Esta ajuda é só do <b>site para clientes</b>. A ajuda geral da aplicação (produtos, guias, stock…) está no botão <b>?</b> dos outros separadores.</p>
   <h4>Como funciona, em resumo</h4>
   <ol><li>Os produtos e preços vêm do separador <b>Produtos</b>. O site nunca mostra custos, descontos de fábrica, transporte nem margens.</li>
-  <li>Aqui, em <b>Catálogo / Site</b>, escolhe o que aparece e como fica.</li>
+  <li>Aqui, em <b>Catálogo / Site</b>, escolhe o que aparece e como fica. A página está ordenada pelo uso diário: 1 Produtos, 2 Destaques, 3 Campanhas, 4 Cabazes; depois, o que se configura uma vez (5 Textos e aspeto), 6 Castas e 7 Gostos.</li>
   <li>Carregue em <b>Gerar página (ficheiro)</b>: descarrega o ficheiro <b>index.html</b>. É esse o site.</li>
   <li>Os preços ficam fixos no momento em que gera. <b>Sempre que mudar preços, destaques ou cabazes, gere outra vez</b> e substitua o ficheiro antigo.</li></ol>
 
@@ -851,7 +851,8 @@ function vCatalogo(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
   <li>Para um produto em particular, na tabela “Produtos no catálogo” use a coluna <b>Mostrar preço</b> (Mostrar / Ocultar / Seguir geral).</li></ol>
 
   <h4>3. Que produtos aparecem</h4>
-  <ol><li>Na tabela “Produtos no catálogo”, a coluna <b>Publicar</b>: desligue para esconder um produto do site.</li></ol>
+  <ol><li>Na tabela “Produtos no catálogo”, a coluna <b>Publicar</b>: desligue para esconder um produto do site.</li>
+  <li>Em <b>Foto / ficha</b> abre a ficha do produto, onde carrega a foto e pode usar <b>✂ Retirar fundo</b>.</li></ol>
 
   <h4>4. Aspeto</h4>
   <ol><li><b>Fundo da capa</b>: Aurora, Ondas, Vinha ou <b>Imagem</b>. Com “Imagem”, carregue a sua foto em <b>Imagem de fundo</b> (tamanho ideal 2400 × 1270 px; deixe o lado esquerdo mais calmo, porque é onde fica o texto).</li>
@@ -939,6 +940,22 @@ function vCatalogo(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
   <li><b>Imagem de cabaz vazia</b>: o link deixou de funcionar; carregue a foto como ficheiro.</li>
   <li><b>Um produto não aparece</b>: confirme a coluna “Publicar” na tabela.</li></ul>
   </div></div>
+ <div class="bar" style="margin:12px 0 4px"><button class="btn" id="cPrev">Pré-visualizar</button><button class="btn pri" id="cGen">Gerar página (ficheiro)</button></div>
+ <div class="sub" style="margin-bottom:6px">A página gerada é um único ficheiro HTML. Pode enviá-lo ou pô-lo num alojamento quando quiser. Os preços ficam fixos no momento em que gera, por isso gere outra vez depois de os alterar.</div>
+ <h3 style="margin:18px 0 8px">1 · Produtos no catálogo</h3>
+ ${L.length?`<div class="tw"><table><thead><tr><th>Produto</th><th>Foto</th><th>Categoria</th><th>Preço na página</th><th>Publicar</th><th>Gostos</th><th>Mostrar preço</th></tr></thead><tbody>
+ ${L.map(p=>{const pr=precoPublico(p);return `<tr><td class="wrapn"><b>${esc(p.nome)}</b><div class="sub">${esc(p.formato)}</div></td><td><button class="btn sm" type="button" data-edp="${p.id}">Foto / ficha</button></td><td>${esc(p.categoria)}</td><td>${p.pub===false?'—':(pr==null?'<span class="sub">oculto</span>':E(pr))}</td>
+ <td><input type="checkbox" data-pub="${p.id}" ${p.pub===false?'':'checked'} style="width:auto" aria-label="Publicar ${esc(p.nome)}"></td>
+ <td>${GC?(GC[p.id]||0):'<span class="sub">—</span>'}</td>
+ <td><select data-pp="${p.id}" style="width:auto" aria-label="Preço de ${esc(p.nome)}"><option value="" ${p.pubPreco==null?'selected':''}>Seguir geral</option><option value="1" ${p.pubPreco===true?'selected':''}>Mostrar</option><option value="0" ${p.pubPreco===false?'selected':''}>Ocultar</option></select></td></tr>`}).join('')}</tbody></table></div>`:'<div class="empty">Ainda não há produtos.</div>'}
+ <h3 style="margin:18px 0 4px">2 · Linhas de destaque</h3><p class="sub" style="margin-top:0">Cada linha tem o seu título e os produtos que escolher (3, 4, 6… os que quiser). A linha de cima aparece primeiro no site. Para uma época (ex.: Natal), crie uma linha “Cabaz de Natal”, ponha-a em cima e desligue-a quando acabar: os produtos ficam guardados.</p>
+ <div id="dests"></div><div class="bar"><button class="btn" id="dtAdd">+ Nova linha de destaque</button></div>
+ <div id="capa"></div>
+ <h3 style="margin:18px 0 4px">3 · Campanhas e promoções</h3>
+  <div class="card" id="campCard">${campInner()}</div>
+ <h3 style="margin:18px 0 4px">4 · Cabazes</h3><p class="sub" style="margin-top:0">Os cabazes aparecem no site dentro do botão dos destaques (“Novidades e destaques”), com o título que escolher (ex.: “Cabazes de Natal”, “Cabazes de Páscoa”). Ao carregar num cabaz abre a imagem grande. Ligue o “Destaque” para os mostrar e desligue quando acabar a época: se estiver desligado, os cabazes não aparecem.</p>
+ <div id="cabs"></div>
+ <details class="cfgsite" style="margin-top:22px"><summary><b>5 · Textos e aspeto do site</b> <span class="sub">(configura-se uma vez)</span></summary>
  <div class="card" style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
   <div class="grid w2">${fld('Título da página','titulo',C,{ph:DB.set.empresa.nome||'Catálogo'})}${fld('Subtítulo (ex.: Vinhos e Azeites)','subtitulo',C)}</div>
   <div class="grid w2">${fld('Título grande da capa (vazio = «Os nossos vinhos»)','capaTit',C,{ph:'Os nossos vinhos'})}</div>
@@ -954,16 +971,11 @@ function vCatalogo(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
   <label>Fundo atrás dos produtos<select id="cFp"><option value="">Nenhum (creme)</option><option value="rosa">Branco com brilho rosa</option><option value="nuvens">Nuvens rosa</option><option value="pastel">Pastel arco-íris</option><option value="aguarela">Aguarela rosa-bordeaux</option><option value="dourado">Dourado suave (aguarela)</option><option value="degrade">Degradê rosa-bordeaux</option><option value="meu">A minha imagem…</option></select></label>
   ${C.fundoProd==='meu'?`<label>A minha imagem ${C.fundoProdImg?'(carregada ✓)':''}<input type="file" id="cFpIn" accept="image/*"></label>`:''}
   <label>Imagem de fundo ${C.capaFundo?'(carregada ✓)':''}<span style="display:flex;gap:6px"><input type="file" id="cFundoIn" accept="image/*" style="flex:1">${C.capaFundo?'<button class="btn sm" id="cFundoX" type="button">Remover</button>':''}</span></label>
-  <label>Letra do título<select id="cLet"><option value="fina" ${(C.letra||'fina')==='fina'?'selected':''}>Fina, maiúsculas (com ramo de louro)</option><option value="serifa" ${C.letra==='serifa'?'selected':''}>Clássica (serifa)</option><option value="manuscrita" ${C.letra==='manuscrita'?'selected':''}>Manuscrita</option></select></label></div>
-  <div class="card" id="campCard" style="grid-column:1/-1">${campInner()}</div>
-  <div class="bar" style="margin:0"><button class="btn" id="cPrev">Pré-visualizar</button><button class="btn pri" id="cGen">Gerar página (ficheiro)</button></div>
-  <div class="sub">A página gerada é um único ficheiro HTML. Pode enviá-lo ou pô-lo num alojamento quando quiser. Os preços ficam fixos no momento em que gera, por isso gere outra vez depois de os alterar.</div></div>
- <h3 style="margin:18px 0 4px">Linhas de destaque</h3><p class="sub" style="margin-top:0">Cada linha tem o seu título e os produtos que escolher (3, 4, 6… os que quiser). A linha de cima aparece primeiro no site. Para uma época (ex.: Natal), crie uma linha “Cabaz de Natal”, ponha-a em cima e desligue-a quando acabar: os produtos ficam guardados.</p>
- <div id="dests"></div><div class="bar"><button class="btn" id="dtAdd">+ Nova linha de destaque</button></div>
- <div id="capa"></div>
- <h3 style="margin:18px 0 4px">Cabazes</h3><p class="sub" style="margin-top:0">Os cabazes aparecem no site dentro do botão dos destaques (“Novidades e destaques”), com o título que escolher (ex.: “Cabazes de Natal”, “Cabazes de Páscoa”). Ao carregar num cabaz abre a imagem grande. Ligue o “Destaque” para os mostrar e desligue quando acabar a época: se estiver desligado, os cabazes não aparecem.</p>
- <div id="cabs"></div>
- <h3 style="margin:18px 0 4px">Gostos dos visitantes</h3><p class="sub" style="margin-top:0">Quando o site estiver online, cada visitante pode marcar o coração e o site conta os gostos de todos. Para isso é preciso uma base de dados online (Supabase da empresa). Sem esta ligação, o coração só guarda os favoritos no navegador de cada pessoa.</p>
+  <label>Letra do título<select id="cLet"><option value="fina" ${(C.letra||'fina')==='fina'?'selected':''}>Fina, maiúsculas (com ramo de louro)</option><option value="serifa" ${C.letra==='serifa'?'selected':''}>Clássica (serifa)</option><option value="manuscrita" ${C.letra==='manuscrita'?'selected':''}>Manuscrita</option></select></label></div></div>
+ </details>
+ <h3 style="margin:24px 0 4px">6 · Castas</h3><p class="sub" style="margin-top:0">Escreva uma descrição para cada casta. Quando o nome aparece no campo "Castas" de um produto, a descrição entra na ficha técnica e no site.</p>
+ <div id="castas"></div><div class="bar"><button class="btn" id="caAdd">+ Casta</button><button class="btn" id="caSeed">Adicionar castas portuguesas comuns</button></div> <details style="margin-top:22px"><summary><b>7 · Gostos dos visitantes</b> <span class="sub">(avançado, base de dados online)</span></summary>
+ <div></div><p class="sub" style="margin-top:0">Quando o site estiver online, cada visitante pode marcar o coração e o site conta os gostos de todos. Para isso é preciso uma base de dados online (Supabase da empresa). Sem esta ligação, o coração só guarda os favoritos no navegador de cada pessoa.</p>
  <div class="card" style="display:flex;flex-direction:column;gap:12px">
   <div class="grid w2">${fld('Endereço da base de dados (URL do projeto)','sbUrl',C,{ph:'https://xxxx.supabase.co'})}${fld('Chave pública (anon / publishable)','sbKey',C)}</div>
   <div class="grid w2">${fld('Título da linha dos mais gostados','topTitulo',C,{ph:'Os mais gostados'})}<label>Mostrar linha “Os mais gostados”<select id="cTop"><option value="0" ${+C.topN?'':'selected'}>Não mostrar</option>${[3,4,6].map(n=>`<option value="${n}" ${+C.topN===n?'selected':''}>Os ${n} mais gostados</option>`).join('')}</select></label></div>
@@ -974,14 +986,9 @@ function vCatalogo(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
   <div class="bar" style="margin:0"><button class="btn pri" id="pubNow">Publicar no site agora</button><button class="btn" id="cSql">Descarregar SQL do catálogo</button></div>
   <div class="sub" id="pubSt"></div>
   <div class="sub">A chave pública pode ir dentro do site. Nunca use aqui a chave “secret” ou “service role”. O SQL cria a tabela e a função que contam os gostos; corre-se uma vez no Supabase.</div></div>
- <h3 style="margin:18px 0 8px">Produtos no catálogo</h3>
- ${L.length?`<div class="tw"><table><thead><tr><th>Produto</th><th>Categoria</th><th>Preço na página</th><th>Publicar</th><th>Gostos</th><th>Mostrar preço</th></tr></thead><tbody>
- ${L.map(p=>{const pr=precoPublico(p);return `<tr><td class="wrapn"><b>${esc(p.nome)}</b><div class="sub">${esc(p.formato)}</div></td><td>${esc(p.categoria)}</td><td>${p.pub===false?'—':(pr==null?'<span class="sub">oculto</span>':E(pr))}</td>
- <td><input type="checkbox" data-pub="${p.id}" ${p.pub===false?'':'checked'} style="width:auto" aria-label="Publicar ${esc(p.nome)}"></td>
- <td>${GC?(GC[p.id]||0):'<span class="sub">—</span>'}</td>
- <td><select data-pp="${p.id}" style="width:auto" aria-label="Preço de ${esc(p.nome)}"><option value="" ${p.pubPreco==null?'selected':''}>Seguir geral</option><option value="1" ${p.pubPreco===true?'selected':''}>Mostrar</option><option value="0" ${p.pubPreco===false?'selected':''}>Ocultar</option></select></td></tr>`}).join('')}</tbody></table></div>`:'<div class="empty">Ainda não há produtos.</div>'}
- <h3 style="margin:24px 0 4px">Castas</h3><p class="sub" style="margin-top:0">Escreva uma descrição para cada casta. Quando o nome aparece no campo "Castas" de um produto, a descrição entra na ficha técnica e no site.</p>
- <div id="castas"></div><div class="bar"><button class="btn" id="caAdd">+ Casta</button><button class="btn" id="caSeed">Adicionar castas portuguesas comuns</button></div>`;
+ </details>
+`;
+ m.querySelectorAll('[data-edp]').forEach(b=>b.onclick=()=>editProd(b.dataset.edp));
  const mvA=(a,j,d)=>{const k=j+d;if(k<0||k>=a.length)return;[a[j],a[k]]=[a[k],a[j]]};
  const drawDest=()=>{const R=C.destaques;R.forEach(r=>{r.itens=r.itens.filter(id=>DB.prod.some(p=>p.id===id))});
   const pubs=DB.prod.filter(p=>p.pub!==false).slice().sort((a,b)=>a.nome.localeCompare(b.nome));
