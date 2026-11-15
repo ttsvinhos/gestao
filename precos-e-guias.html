@@ -41,7 +41,7 @@ nav.tabs{gap:8px;flex-wrap:wrap;justify-content:center}
 nav.tabs button{flex-direction:column;justify-content:center;gap:4px;min-width:84px;padding:8px 10px;font-size:.78rem;line-height:1.15;background:var(--surface);border:1px solid var(--line);box-shadow:0 1px 0 rgba(0,0,0,.03)}
 nav.tabs button:hover{border-color:var(--muted)}
 nav.tabs button[aria-current="page"]{border-color:var(--accent)}
-#btnSair{border:1px solid var(--line)}
+#btnSair{display:inline-flex;align-items:center;gap:6px;width:auto;flex:0 0 auto;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:.78rem;font-weight:600;line-height:1.2;white-space:nowrap}#btnSair:hover{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}#btnSair svg{width:14px;height:14px}
 @media (max-width:720px){
   nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));justify-content:space-around}
   nav.tabs{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;gap:6px}
@@ -825,6 +825,7 @@ function vCatalogo(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
 
   <h4>1. Textos da página</h4>
   <ol><li><b>Título</b> e <b>Subtítulo</b>: aparecem no topo e na capa (ex.: “Vinhos Trindade” / “Vinhos e Azeites”).</li>
+  <li><b>Título grande da capa</b>: o texto grande da capa. Se ficar vazio, aparece “Os nossos vinhos” (ou “Os nossos produtos”). O <b>Texto de apresentação</b> aparece por baixo.</li>
   <li><b>Texto de apresentação</b>: a frase por baixo do título da capa.</li>
   <li><b>Aviso junto aos preços</b>: ex.: “Preços sujeitos a alteração”.</li>
   <li><b>Categorias de vinho</b>: a ordem em que aparecem (Tinto, Branco, Rosé, Espumante).</li>
@@ -925,6 +926,7 @@ function vCatalogo(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
   </div></div>
  <div class="card" style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
   <div class="grid w2">${fld('Título da página','titulo',C,{ph:DB.set.empresa.nome||'Catálogo'})}${fld('Subtítulo (ex.: Vinhos e Azeites)','subtitulo',C)}</div>
+  <div class="grid w2">${fld('Título grande da capa (vazio = «Os nossos vinhos»)','capaTit',C,{ph:'Os nossos vinhos'})}</div>
   ${fld('Aviso junto aos preços (opcional)','aviso',C,{ph:'Preços sujeitos a alteração'})}
   ${area('Texto de apresentação','intro',C)}
   ${fld('Categorias de vinho (aparecem primeiro, pela ordem indicada)','vinhos',C,{ph:'Tinto, Branco, Rosé, Espumante'})}
@@ -1048,7 +1050,7 @@ const PF={"dourado": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAc
 function siteData(){const S=DB.set,C=S.cat,e=S.empresa;const vin=String(C.vinhos||'').split(',').map(x=>x.trim()).filter(Boolean);const vo=c=>{const i=vin.findIndex(v=>norm(v)===norm(c));return i<0?999:i};
  const prods=DB.prod.filter(p=>p.pub!==false).sort((a,b)=>vo(a.categoria)-vo(b.categoria)||(a.categoria||'').localeCompare(b.categoria||'')||a.nome.localeCompare(b.nome));
  const destq=(C.destaques||[]).filter(r=>r.ativo!==false).map(r=>({t:r.titulo||'',k:r.itens.map(id=>prods.findIndex(p=>p.id===id)).filter(k=>k>=0)})).filter(r=>r.k.length);
- return{v:Date.now(),fp:(C.fundoProd==='meu'?(C.fundoProdImg||''):(PF[C.fundoProd]||'')),est:C.estilo||'aurora',fundo:C.capaFundo||'',letra:C.letra||'fina',idade:C.idade!==false,dest:destq,gostos:(C.sbUrl&&C.sbKey)?{u:String(C.sbUrl).trim().replace(/\/+$/,''),k:String(C.sbKey).trim()}:null,top:{n:+C.topN||0,t:C.topTitulo||'Os mais gostados'},titulo:C.titulo||e.nome||'Catálogo',sub:C.subtitulo||'',vant:String(C.vantagens||'').split('\n').map(x=>x.trim()).filter(Boolean).slice(0,4),intro:C.intro||'',aviso:C.aviso||'',iva:C.iva!==false,logo:e.logo||'',emp:{nome:e.nome,morada:e.morada,cp:e.cp,tel:e.tel,email:e.email},
+ return{v:Date.now(),fp:(C.fundoProd==='meu'?(C.fundoProdImg||''):(PF[C.fundoProd]||'')),est:C.estilo||'aurora',fundo:C.capaFundo||'',letra:C.letra||'fina',idade:C.idade!==false,dest:destq,gostos:(C.sbUrl&&C.sbKey)?{u:String(C.sbUrl).trim().replace(/\/+$/,''),k:String(C.sbKey).trim()}:null,top:{n:+C.topN||0,t:C.topTitulo||'Os mais gostados'},titulo:C.titulo||e.nome||'Catálogo',capaTit:String(C.capaTit||'').trim(),sub:C.subtitulo||'',vant:String(C.vantagens||'').split('\n').map(x=>x.trim()).filter(Boolean).slice(0,4),intro:C.intro||'',aviso:C.aviso||'',iva:C.iva!==false,logo:e.logo||'',emp:{nome:e.nome,morada:e.morada,cp:e.cp,tel:e.tel,email:e.email},
  capaInfo:!!C.capaInfo,cortina:C.cortina||'fechada',cortTxt:C.cortinaTexto||'',hov:(()=>{const r=(C.destaques||[]).filter(r=>r.ativo!==false&&r.itens.some(id=>prods.some(p=>p.id===id)))[0];const o={};if(r&&r.txt)r.itens.slice(0,3).forEach(id=>{const k=prods.findIndex(p=>p.id===id),x=r.txt[id];if(k>=0&&x)o[k]={t:x.t||'',p:x.p||'',d:x.d||''}});return o})(),cab:(C.cabazes&&C.cabazes.ativo!==false&&(C.cabazes.itens||[]).some(c=>c.nome||c.foto))?{t:C.cabazes.titulo||'Cabazes',k:C.cabazes.itens.filter(c=>c.nome||c.foto).map(c=>({n:c.nome||'',p:c.preco||'',d:c.desc||'',f:c.foto||''}))}:null,vin:vin,items:prods.map(p=>{const f=p.ficha||{};
   return{id:p.id,w:vo(p.categoria)<999?1:0,n:p.nome,r:p.ref||'',c:p.categoria||'',f:p.formato||'',e:p.embQt>1?(p.embNome||'Emb.')+' de '+p.embQt:'',p:precoPublico(p),pr:null,pt:'',pm:pmList(p),cq:(()=>{const n=parseInt(f.cxQt,10);return n>1?n:0})(),cp:(()=>{const t=String(f.cxPreco||'').trim();if(!t)return null;const n=parseFloat(t.indexOf(',')>=0?t.replace(/\./g,'').replace(',','.'):t);return isFinite(n)&&n>0?n:null})(),
   t:String(f.tags||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean),cd:castaDescs(f.casta).map(c=>[c.nome,c.desc]),fi:{desc:f.desc||'',produtor:f.produtor||'',regiao:f.regiao||'',casta:f.casta||'',ano:f.ano||'',alc:f.alc||'',temp:f.temp||'',guarda:f.guarda||'',prova:f.prova||'',harmon:f.harmon||'',notas:f.notas||'',foto:f.foto||''},
@@ -1304,6 +1306,7 @@ body{overflow-x:clip}
 .fp .hs-img{background:linear-gradient(rgba(255,255,255,.86),rgba(255,255,255,.86)),var(--fp) center/cover no-repeat !important}.hs-img{box-shadow:0 14px 26px -6px rgba(0,0,0,.45),0 44px 80px -24px rgba(0,0,0,.85),0 0 0 1px rgba(230,196,126,.5),0 0 0 8px rgba(230,196,126,.08)}
 .wafab{width:48px;height:48px;padding:0;justify-content:center;right:16px;bottom:16px}.wafab span{display:none}.wafab svg{width:26px;height:26px}
 .hs-promo{display:inline-flex;align-items:baseline;gap:8px;flex-wrap:wrap;justify-content:center}.hs-promo em{font-style:normal;font:800 .68rem var(--fd);letter-spacing:.1em;text-transform:uppercase;background:#d01a42;color:#fff;border-radius:999px;padding:3px 9px}.hs-promo s{opacity:.7;font-size:.9rem}.hs-promo b{color:var(--ouro2);font-size:1.25rem}
+.hs-t{position:relative;z-index:7}.hs-t small{color:#ffe9b8;font-size:.78rem;letter-spacing:.22em;text-shadow:0 1px 8px rgba(0,0,0,.85),0 0 2px rgba(0,0,0,.6)}.hs-ficha{color:#ffe9b8;text-shadow:0 1px 8px rgba(0,0,0,.8)}
 .hs-seal{position:absolute;top:14px;left:14px;z-index:3;background:#d01a42;color:#fff;font:800 .74rem var(--fd);letter-spacing:.1em;text-transform:uppercase;border-radius:999px;padding:6px 13px;box-shadow:0 8px 16px -6px rgba(120,0,30,.6);pointer-events:none;max-width:calc(100% - 28px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @keyframes flut{to{transform:translate(-60px,50px) scale(1.15)}}
 @keyframes up{from{opacity:0;transform:translateY(24px)}}
@@ -1383,7 +1386,7 @@ if(e.email)ac+='<a class="botao" href="mailto:'+esc(e.email)+'">Falar connosco</
 var ct='';if(e.morada)ct+='<p>'+esc(e.morada)+'</p>';if(e.cp)ct+='<p>'+esc(e.cp)+'</p>';if(e.tel)ct+='<p><a href="tel:'+esc(e.tel.replace(/\s/g,''))+'">'+esc(e.tel)+'</a></p>';if(e.email)ct+='<p><a href="mailto:'+esc(e.email)+'">'+esc(e.email)+'</a></p>';
 var dest=D.dest||[];
 var hasP=D.items.some(function(i){return i.p!=null});
-var tw=hasW?'Os nossos vinhos':'Os nossos produtos';
+var tw=D.capaTit||(hasW?'Os nossos vinhos':'Os nossos produtos');
 var HS=[];for(var qi=0;qi<D.dest.length&&!HS.length;qi++)HS=D.dest[qi].k.filter(function(k){return D.items[k]}).slice(0,10);
 if(HS.length>1){var pm=HS.filter(function(k){return pro(D.items[k])}),ot=HS.filter(function(k){return!pro(D.items[k])});if(pm.length){var dsc=function(k){var i=D.items[k];return(i.p-i.pr)/i.p};pm.sort(function(a,b){return dsc(b)-dsc(a)});HS=pm.concat(ot)}else{var st=Math.floor(Math.random()*HS.length);HS=HS.slice(st).concat(HS.slice(0,st))}}
 
@@ -1671,7 +1674,7 @@ function mostraEntrada(msg){
    try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}
    g.remove();document.body.classList.remove('gated');sairBtn();render()}
   catch(e){window.__entrada=false;st.textContent=e.message;bt.disabled=false}}}
-function sairBtn(){const h=document.querySelector('header.top');if(!h||document.getElementById('btnSair'))return;const b=document.createElement('button');b.id='btnSair';b.className='btn sm';b.textContent='Sair';b.title='Terminar sessão neste aparelho';b.onclick=sairNuvem;h.appendChild(b)}
+function sairBtn(){const h=document.querySelector('header.top');if(!h||document.getElementById('btnSair'))return;const b=document.createElement('button');b.id='btnSair';b.className='btn sm';b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>Sair';b.title='Terminar sessão neste aparelho';b.onclick=sairNuvem;h.appendChild(b)}
 /* ---------- convite: criar palavra-passe com o link recebido ---------- */
 function lerHashConvite(){const h=location.hash.replace(/^#/,'');if(!h)return null;const q=new URLSearchParams(h);
  if(q.get('error'))return{erro:'O link expirou ou já foi usado. Peça ao dono um link novo.'};
