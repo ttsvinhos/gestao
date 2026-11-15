@@ -809,7 +809,7 @@ function vCatalogo(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
   <h4>Como funciona, em resumo</h4>
   <ol><li>Os produtos e preços vêm do separador <b>Produtos</b>. O site nunca mostra custos, descontos de fábrica, transporte nem margens.</li>
   <li>Aqui, em <b>Catálogo / Site</b>, escolhe o que aparece e como fica.</li>
-  <li>Carregue em <b>Gerar página (ficheiro)</b>: descarrega o ficheiro <b>catalogo.html</b>. É esse o site.</li>
+  <li>Carregue em <b>Gerar página (ficheiro)</b>: descarrega o ficheiro <b>index.html</b>. É esse o site.</li>
   <li>Os preços ficam fixos no momento em que gera. <b>Sempre que mudar preços, destaques ou cabazes, gere outra vez</b> e substitua o ficheiro antigo.</li></ol>
 
   <h4>Antes de começar (uma vez)</h4>
@@ -889,8 +889,13 @@ function vCatalogo(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
 
   <h4>11. Pré-visualizar e gerar</h4>
   <ol><li><b>Pré-visualizar</b>: vê o site numa janela, sem descarregar nada.</li>
-  <li><b>Gerar página (ficheiro)</b>: descarrega <b>catalogo.html</b>. Abra-o no browser para confirmar, depois envie-o ou ponha-o online.</li>
+  <li><b>Gerar página (ficheiro)</b>: descarrega <b>index.html</b>. Abra-o no browser para confirmar e depois ponha-o online (ver o passo 12).</li>
   <li>As fotos de produto aparecem se estiverem guardadas na ficha. Fotos por link precisam de internet.</li></ol>
+  <h4>12. Pôr o site online (GitHub) e atualizá-lo</h4>
+  <ol><li>O catálogo está em <b>https://ttsvinhos.github.io/catalogo/</b>, na conta GitHub da empresa. Abra <b>https://github.com/ttsvinhos/catalogo/upload/main</b>.</li>
+  <li>Arraste o ficheiro <b>index.html</b> acabado de gerar e carregue em <b>Commit changes</b>. Substitui o antigo. Passado 1 a 2 minutos o site está atualizado (se ainda vir o antigo, carregue em Ctrl+F5).</li>
+  <li>Sempre que mudar produtos, preços, destaques ou promoções: gere outra vez e envie o novo <b>index.html</b>. Se o descarregamento vier com outro nome (por exemplo, <b>index (1).html</b>), mude-lhe o nome para <b>index.html</b> antes de enviar.</li>
+  <li>Esta é a <b>página pública</b>: nunca envie para este endereço o ficheiro da aplicação (<b>precos-e-guias.html</b>). A aplicação tem o seu próprio endereço, com login: <b>https://ttsvinhos.github.io/gestao/precos-e-guias.html</b>.</li></ol>
 
   <h4>12. Gostos dos visitantes (opcional, só com o site online)</h4>
   <ol><li>Sem base de dados online, o coração só guarda os favoritos no browser de cada visitante.</li>
@@ -1025,7 +1030,7 @@ function vCatalogo(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
  {const fp=$('#cFp');fp.value=C.fundoProd||'';fp.onchange=e=>{C.fundoProd=e.target.value;save();vCatalogo(m)};const fi=$('#cFpIn');if(fi)fi.onchange=e=>{const f=e.target.files[0];if(f)imgToData(f,800,d=>{C.fundoProdImg=d;save();toast('Fundo carregado');vCatalogo(m)})}}$('#cIdade').onchange=e=>{C.idade=e.target.value==='1';save()};$('#cEst').onchange=e=>{C.estilo=e.target.value;save()};$('#cFundoIn').onchange=e=>{const f=e.target.files[0];if(f)imgToData(f,1800,d=>{C.capaFundo=d;C.estilo='imagem';save();toast('Imagem de fundo carregada');vCatalogo(m)})};const fx2=$('#cFundoX');if(fx2)fx2.onclick=()=>{C.capaFundo='';if(C.estilo==='imagem')C.estilo='aurora';save();vCatalogo(m)};$('#cLet').onchange=e=>{C.letra=e.target.value;save()};
  $('#cReg').onchange=e=>{C.regiao=e.target.value||null;save();vCatalogo(m)};
  $('#cIva').onchange=e=>{C.iva=e.target.value==='1';save();vCatalogo(m)};
- $('#cGen').onclick=()=>{download('catalogo.html',buildSite(),'text/html');toast('Página gerada')};
+ $('#cGen').onclick=()=>{download('index.html',buildSite(),'text/html');toast('Página gerada')};
  campBind($('#campCard'));
  $('#cPrev').onclick=()=>{openModal(`<header><h3>Pré-visualização</h3><button class="btn sm" id="mx">Fechar</button></header><iframe id="prevF" title="Pré-visualização" style="width:100%;height:72vh;border:0;background:#fff"></iframe>`);$('#prevF').srcdoc=buildSite();$('#mx').onclick=closeModal};
  m.onchange=e=>{const t=e.target;if(t.dataset.pub){const p=DB.prod.find(x=>x.id===t.dataset.pub);p.pub=t.checked;save();vCatalogo(m)}
