@@ -139,6 +139,11 @@ tr:last-child td{border-bottom:0}
   #print{display:block}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+body.gated header.top,body.gated #main,body.gated #modal{display:none!important}
+#gate{position:fixed;inset:0;z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg,#f6f4f1)}
+#gate .gbox{width:100%;max-width:360px;background:#fff;border:1px solid var(--line,#ddd);border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:12px;box-shadow:0 8px 30px rgba(0,0,0,.08)}
+#gate h1{margin:0;font-size:22px}#gate label{display:flex;flex-direction:column;gap:4px;font-size:13px}
+#gate input{padding:10px;border:1px solid var(--line,#ccc);border-radius:8px;font-size:16px}
 </style>
 </head>
 <body>
@@ -328,7 +333,8 @@ const nvSave=()=>{try{localStorage.setItem(NVK,JSON.stringify(NV))}catch(e){}};
 const nvOn=()=>!!(NV.sess&&NV.sess.rt);
 const cj=o=>o===null||typeof o!=='object'?JSON.stringify(o):Array.isArray(o)?'['+o.map(cj).join(',')+']':'{'+Object.keys(o).sort().filter(k=>o[k]!==undefined).map(k=>JSON.stringify(k)+':'+cj(o[k])).join(',')+'}';
 const hs=o=>{const s=cj(o);let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return h+':'+s.length};
-const nvCfg=()=>{const C=(DB.set&&DB.set.cat)||{};return{u:String(C.sbUrl||'').trim().replace(/\/+$/,''),k:String(C.sbKey||'').trim()}};
+const NUVEM_FIXA={u:'https://wfteuioclikjesscrial.supabase.co',k:'sb_publishable_9ZJiyj0WxPxgaB6wloKj-g_8m5Rzxjj'};
+const nvCfg=()=>{const C=(DB&&DB.set&&DB.set.cat)||{};return{u:String(NUVEM_FIXA.u||C.sbUrl||'').trim().replace(/\/+$/,''),k:String(NUVEM_FIXA.k||C.sbKey||'').trim()}};
 async function nvTok(){const{u,k}=nvCfg(),s=NV.sess;if(!s)throw new Error('Sem sessão');if(Date.now()<s.exp-60000)return s.at;
  const r=await fetch(u+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:k,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.rt})});
  if(!r.ok){NV.sess=null;nvSave();throw new Error('Sessão expirada: volte a entrar.')}
@@ -341,8 +347,10 @@ async function nvLogin(email,pw){const{u,k}=nvCfg();if(!u||!k)throw new Error('P
  const r=await fetch(u+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:k,'Content-Type':'application/json'},body:JSON.stringify({email,password:pw})});
  if(!r.ok)throw new Error('Entrada recusada: confirme o e-mail e a palavra-passe.');const j=await r.json();
  NV={sess:{at:j.access_token,rt:j.refresh_token,exp:Date.now()+(j.expires_in||3600)*1000,email},h:{},mvh:{},dv:0,dh:null};nvSave();
- const p=await nvReq('perfis?select=papel');if(!p||!p[0]){NV={};nvSave();throw new Error('Este utilizador ainda não tem perfil (admin ou func) na base de dados.')}
- NV.papel=p[0].papel;nvSave();await nvSync(true)}
+ const p=await nvReq('perfis?select=papel,paginas,ativo');if(!p||!p[0]){NV={};nvSave();throw new Error('Este utilizador ainda não tem acesso. Peça ao dono.')}
+ if(p[0].ativo===false){NV={};nvSave();throw new Error('O seu acesso está desativado. Fale com o dono.')}
+ NV.papel=p[0].papel;NV.paginas=p[0].paginas||[];nvSave();await nvSync(true)}
+async function nvPerfil(){try{const p=await nvReq('perfis?select=papel,paginas,ativo');if(p&&p[0]){if(p[0].ativo===false){try{localStorage.removeItem(KEY);localStorage.removeItem(NVK)}catch(e){}location.reload();return}NV.papel=p[0].papel;NV.paginas=p[0].paginas||[];nvSave()}}catch(e){}}
 const nvDocDados=()=>({forn:DB.forn,prod:DB.prod,cli:DB.cli,castas:DB.castas,set:DB.set,ivaReg:DB.ivaReg,exemplo:DB.exemplo});
 async function nvPush(){if(!nvOn())return;
  if(NV.papel==='admin'){const doc=nvDocDados(),hh=hs(doc);
@@ -364,7 +372,8 @@ async function nvPush(){if(!nvOn())return;
 async function nvPull(first){if(!nvOn())return false;let ch=false;
  const dd=await nvReq('app_dados?id=eq.1&select=doc,versao');
  if(dd&&dd[0]&&dd[0].versao>(NV.dv||0)){const adm=NV.papel==='admin';let adopt=!adm;
-  if(adm&&first)adopt=confirm('Já existem dados na nuvem.\n\nOK = usar os dados da nuvem (substitui os deste aparelho).\nCancelar = manter os deste aparelho e enviá-los para a nuvem.');
+  if(adm&&first&&window.__entrada)adopt=true;
+  else if(adm&&first)adopt=confirm('Já existem dados na nuvem.\n\nOK = usar os dados da nuvem (substitui os deste aparelho).\nCancelar = manter os deste aparelho e enviá-los para a nuvem.');
   if(adopt){const d=dd[0].doc;DB.forn=d.forn||[];DB.prod=d.prod||[];DB.cli=d.cli||[];DB.castas=d.castas||[];DB.set=d.set||DB.set;DB.ivaReg=d.ivaReg;DB.exemplo=d.exemplo;migrate(DB);NV.dv=dd[0].versao;NV.dh=hs(nvDocDados());ch=true}
   else if(first){NV.dv=dd[0].versao}}
  const gr=await nvReq('guias?select=id,doc,apagada');
@@ -382,7 +391,7 @@ async function nvPull(first){if(!nvOn())return false;let ch=false;
  nvSave();return ch}
 let nvBusy=false;
 async function nvSync(first){if(!nvOn()||nvBusy)return;nvBusy=true;let ch=false;
- try{await nvPush();ch=await nvPull(first);if(ch||first){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}await nvPush();NV.ultima=Date.now();NV.erro='';nvSave()}
+ try{await nvPerfil();if(first){ch=await nvPull(first)}else{await nvPush();ch=await nvPull(first)}if(ch||first){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}await nvPush();NV.ultima=Date.now();NV.erro='';nvSave()}
  catch(e){NV.erro=e.message||'Falhou a ligação';nvSave()}
  nvBusy=false;
  if(!$('#modal').classList.contains('on')&&!ui.guia&&(ch||ui.tab==='config'))render()}
@@ -396,7 +405,7 @@ function migrate(d){const S=d.set;
  if(!Array.isArray(d.mov))d.mov=[];
  if(!Array.isArray(d.desp))d.desp=[];
  if(!Array.isArray(S.despTipos)||!S.despTipos.length)S.despTipos=DESP_TIPOS.slice();
- if(!S.dadosTT){const e=S.empresa||(S.empresa={});if(!e.tel)e.tel='969 046 300';if(!e.email)e.email='geral@ttsilvas.com';if(!e.iban)e.iban='PT50 0023 0000 4550 5955 6129 4';if(!S.bk||typeof S.bk!=='object')S.bk={};if(!S.bk.email)S.bk.email='geral@ttsilvas.com';S.dadosTT=1}
+ if(!S.dadosTT){S.dadosTT=1}
  if(!S.despV2){DESP_NOVOS.forEach(t=>{if(!S.despTipos.includes(t))S.despTipos.push(t)});S.despV2=1}
  if(typeof S.pagLista!=='string'||!S.pagLista.trim())S.pagLista=PAG_DEF;
  if(!Array.isArray(S.ivaTipos)||!S.ivaTipos.length)S.ivaTipos=ivaTiposDef();
@@ -428,7 +437,9 @@ const ui={tab:'produtos',q:'',forn:'',cat:'',guia:null,gq:''};
 let cur=null,afterInput=null,confirmT={};
 const TICO={financeiro:`<svg class="ic" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>`,produtos:`<svg class="ic" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2h8v3l1.5 3v12a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2V8L8 5z"/><path d="M8 5h8"/></svg>`,guias:`<svg class="ic" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h9l4 4v16H6z"/><path d="M14 2v5h5M9 13h7M9 17h7"/></svg>`,stock:`<svg class="ic" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>`,clientes:`<svg class="ic" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 21a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 6.5"/></svg>`,fornecedores:`<svg class="ic" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 6h13v11H1zM14 10h5l3 3v4h-8"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>`,config:`<svg class="ic" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>`,catalogo:`<svg class="ic" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19M12 2.5c2.8 3 4 6 4 9.5s-1.2 6.500-4 9.500c-2.800-3-4-6-4-9.500s1.200-6.500 4-9.500z"/></svg>`};
 const TABS=[['produtos','Produtos'],['guias','Guias'],['stock','Stock'],['clientes','Clientes'],['fornecedores','Fornecedores'],['financeiro','Financeiro'],['config','Definições'],['catalogo','Catálogo / Site']];
-function renderTabs(){$('#tabs').innerHTML=TABS.map(([k,l])=>`<button data-tab="${k}" ${ui.tab===k?'aria-current="page"':''}>${TICO[k]||''}<span>${l}</span></button>`).join('');
+const PAG_OPC=[['produtos','Produtos'],['clientes','Clientes'],['fornecedores','Fornecedores'],['financeiro','Financeiro'],['catalogo','Catálogo / Site']];
+const tabsVisiveis=()=>{if(!nvOn()||NV.papel==='admin')return TABS;const ok=['guias','stock',...(NV.paginas||[])];return TABS.filter(t=>ok.includes(t[0]))};
+function renderTabs(){$('#tabs').innerHTML=tabsVisiveis().map(([k,l])=>`<button data-tab="${k}" ${ui.tab===k?'aria-current="page"':''}>${TICO[k]||''}<span>${l}</span></button>`).join('');
  $('#empName').textContent=DB.set.empresa.nome||''}
 function go(t){ui.tab=t;ui.guia=null;render();window.scrollTo(0,0)}
 
@@ -439,7 +450,7 @@ const AJ_GERAL=`<h4 data-aj="inicio">Por onde começar (uma vez)</h4><ol><li><b>
 <h4 data-aj="clientes">Clientes</h4><ul><li><b>+ Cliente</b> guarda nome, NIF e morada para não os escrever em cada guia.</li></ul>
 <h4 data-aj="fornecedores">Fornecedores</h4><ul><li><b>+ Fornecedor</b>: defina desconto de fábrica, transporte, margem e região de compra. Se mudar aqui, os preços dos produtos que herdam estes valores mudam.</li><li>Um produto pode ter os seus próprios valores na ficha. Esses ganham ao do fornecedor.</li></ul>
 <h4 data-aj="financeiro">Financeiro</h4><ol><li>Escolha o <b>período</b> (este mês, mês anterior, trimestre, ano, tudo ou datas à escolha).</li><li>Vê as <b>vendas sem IVA</b>, o <b>lucro estimado</b>, o total com IVA e o número de guias, com a comparação ao período anterior.</li><li>Mais abaixo: vendas por mês, melhores clientes, produtos mais vendidos, por fornecedor e por categoria.</li><li>No fim, o <b>valor do stock</b> no armazém, ao custo e a preço de venda.</li><li>Em <b>Despesas</b>, lance o que a empresa gasta (data, tipo, valor). Os tipos incluem salários, encargos, combustível, seguro e inspeção dos carros… e pode criar novos em “+ Novo tipo”. No campo <b>Funcionário ou viatura</b> escreva o nome ou a matrícula: assim vê quanto custa cada funcionário e cada carro. Vê as despesas por tipo e o <b>resultado estimado</b> (lucro menos despesas).</li><li><b>Exportar vendas</b> e <b>Exportar despesas</b> (CSV) dão as listas do período, para enviar ao contabilista.</li></ol><ul><li>Vendas e lucro vêm das <b>guias guardadas</b>; as despesas são as que você lança. O custo dos vinhos já está no lucro: não lance as compras aos fornecedores. Não inclui pagamentos recebidos, e o lucro é uma estimativa (preço de venda menos custo do produto). Linhas livres não têm custo.</li></ul><h4 data-aj="config">Definições</h4><ul><li><b>Cálculo de preços</b>: como se calcula a margem. Ao mudar o modo, os preços recalculam-se.</li><li><b>Taxas de IVA por região</b> e <b>Guia de entrega</b> (pagamento e texto por omissão).</li><li><b>Avisos de stock</b>: botões para enviar o aviso por WhatsApp, SMS ou e-mail.</li><li><b>Nuvem</b>: partilha os dados entre aparelhos. Sem ela, tudo fica só neste computador.</li><li><b>Guardar automaticamente na Drive</b>: escreva o email do cliente, cole o link do Google e a app copia tudo sozinha depois de cada alteração (e envia uma cópia por email uma vez por dia). Há instruções passo a passo no próprio cartão. “Recuperar da Drive” volta a trazer a última cópia.</li><li><b>Cópia de segurança</b> (no fim da página): <b>Guardar cópia (JSON)</b>, <b>Importar cópia</b> (volta a carregar uma cópia e <b>substitui tudo</b>) e <b>Exportar preços (CSV)</b>. <b>Apagar dados de exemplo</b> limpa os exemplos.</li></ul>
-<h4 data-aj="dica">Importante</h4><ul><li>Sem a nuvem, os dados ficam guardados <b>neste navegador</b>. Faça uma <b>cópia de segurança</b> de vez em quando, sobretudo antes de limpar os dados do Chrome.</li><li>A ajuda do <b>site para clientes</b> está em <b>Catálogo / Site</b>.</li><li><b>Versão online (Nuvem):</b> em Definições → Nuvem, ligue ao Supabase da empresa com o e-mail e a palavra-passe. O <b>administrador</b> (o dono) grava produtos e preços; os <b>funcionários</b> emitem guias e o stock fica igual em todos os aparelhos. Quando uma venda faz o stock descer do mínimo, o dono recebe o aviso por e-mail e no telemóvel. Passos de preparação no ficheiro LEIA-ME-nuvem.txt. Ainda não existe acesso escolhido por funcionário: neste momento todos os funcionários veem os mesmos dados.</li></ul>`;
+<h4 data-aj="dica">Importante</h4><ul><li>Sem a nuvem, os dados ficam guardados <b>neste navegador</b>. Faça uma <b>cópia de segurança</b> de vez em quando, sobretudo antes de limpar os dados do Chrome.</li><li>A ajuda do <b>site para clientes</b> está em <b>Catálogo / Site</b>.</li><li><b>Entrada:</b> a app pede sempre e-mail e palavra-passe. Sem entrar, não se vê nada. O botão <b>Sair</b> (no topo) termina a sessão e apaga os dados deste aparelho, depois de enviar para a nuvem o que faltar.</li><li><b>Equipa:</b> em Definições → Equipa (só o dono), escreva o nome e o e-mail do funcionário, escolha as páginas extra e carregue em <b>Criar acesso e gerar link</b>. Envie o link por WhatsApp: o funcionário abre-o, cria a palavra-passe e entra. Todos veem sempre Guias e Stock. Pode mudar as páginas de cada um, <b>Tornar administrador</b> (vê e altera tudo, incluindo custos e a equipa; use só com quem confia totalmente), <b>Passar a funcionário</b>, <b>Desativar</b> (bloqueia, mas guarda) ou <b>Remover</b> (apaga o acesso; um administrador tem primeiro de passar a funcionário). <b>Novo link</b> serve para quem se esqueceu da palavra-passe. Os custos e margens ainda não ficam escondidos aos funcionários que vejam Produtos.</li><li><b>Nuvem:</b> o <b>administrador</b> (o dono) grava produtos e preços; os <b>funcionários</b> emitem guias e o stock fica igual em todos os aparelhos. Quando uma venda faz o stock descer do mínimo, o dono recebe o aviso. Passos de preparação no ficheiro LEIA-ME-nuvem.txt.</li></ul>`;
 const AJ_TAB={financeiro:'financeiro',produtos:'produtos',guias:'guias',stock:'stock',clientes:'clientes',fornecedores:'fornecedores',config:'config'};
 function ajGeral(){let f=document.getElementById('ajG'),pn=document.getElementById('ajGP');
  if(!f){f=document.createElement('button');f.id='ajG';f.type='button';f.className='aj-fab';f.textContent='?';f.title='Ajuda';f.setAttribute('aria-label','Ajuda da aplicação');
@@ -448,7 +459,7 @@ function ajGeral(){let f=document.getElementById('ajG'),pn=document.getElementBy
   f.onclick=()=>{const on=pn.classList.toggle('on');if(on){const S={};AJ_GERAL.split('<h4 ').slice(1).forEach(x=>{const k=x.match(/data-aj="(\w+)"/)[1];S[k]='<h4 '+x});const k=AJ_TAB[ui.tab];pn.querySelector('.aj-b').innerHTML=(S[k]||'')+(k==='config'?(S.inicio||'')+(S.dica||''):'');pn.querySelector('.aj-hd b').textContent='📖 Ajuda — '+(TABS.find(t=>t[0]===ui.tab)||[0,''])[1];pn.scrollTop=0}};
   pn.querySelector('.aj-hd button').onclick=()=>pn.classList.remove('on')}
  const ok=!!AJ_TAB[ui.tab];f.style.display=ok?'':'none';if(!ok)pn.classList.remove('on')}
-function render(){renderTabs();const m=$('#main');
+function render(){{const v=tabsVisiveis();if(!v.some(t=>t[0]===ui.tab))ui.tab=v[0][0]}renderTabs();const m=$('#main');
  ({financeiro:vFinanceiro,produtos:vProdutos,fornecedores:vForn,clientes:vCli,guias:vGuias,stock:vStock,catalogo:vCatalogo,config:vConfig})[ui.tab](m);ajGeral()}
 
 /* ---------- campos ---------- */
@@ -1427,12 +1438,13 @@ function vConfig(m){const S=DB.set;cur=S;afterInput=el=>{save();renderTabs()};
   <div class="bar" style="margin:12px 0 0"><button class="btn" id="ivaAdd">+ Tipo de IVA</button><button class="btn" id="ivaDef">Repor taxas de partida</button></div></div>
  <div class="card"><h3 style="margin-bottom:10px">Guia de entrega</h3><div style="display:flex;flex-direction:column;gap:12px">
   <div class="grid w2">${fld('Prefixo da numeração','serie',S)}${sel('pagamento',S,[...new Set([...pagOpts(),S.pagamento].filter(Boolean))].map(x=>[x,x]),{id:'f_pagamento'}).replace(/^/,'<label>Pagamento por omissão')+'</label>'}</div>${area('Formas de pagamento disponíveis nas guias (uma por linha — pode acrescentar ou apagar)','pagLista',S)}${fld('Aviso no topo','aviso',S)}${fld('Rodapé','rodape',S)}</div></div>
- <div class="card"><h3 style="margin-bottom:10px">Avisos de stock</h3><p class="sub" style="margin-top:0">Quando um produto chega ao número de caixas definido, aparecem botões (WhatsApp, SMS, e-mail) para enviar o aviso. Com a nuvem ligada, o <b>e-mail</b> e a <b>notificação no telemóvel</b> são enviados sozinhos, mesmo com a app fechada. Pode pôr os que quiser e alterá-los quando precisar.</p><div class="grid w2">${fld('Telemóvel para avisos','avisoTel',S,{ph:'ex.: 912 345 678'})}${fld('E-mail para avisos','avisoEmail',S,{ph:'ex.: armazem@empresa.pt'})}</div>
+ <div class="card"><h3 style="margin-bottom:10px">Avisos de stock</h3><p class="sub" style="margin-top:0">Quando um produto chega ao número de caixas definido, aparecem botões (WhatsApp, SMS, e-mail) para enviar o aviso. Com a nuvem ligada, o <b>e-mail</b>, a <b>notificação no telemóvel</b> e o <b>WhatsApp do dono</b> são enviados sozinhos, mesmo com a app fechada. O WhatsApp automático (serviço gratuito CallMeBot) fica ativado no Supabase, com o número e a chave do dono, e não precisa de campo aqui. Pode pôr os outros canais que quiser e alterá-los quando precisar.</p><div class="grid w2">${fld('Telemóvel para avisos','avisoTel',S,{ph:'ex.: 912 345 678'})}${fld('E-mail para avisos','avisoEmail',S,{ph:'ex.: armazem@empresa.pt'})}</div>
   <div style="margin-top:12px">${fld('Notificação no telemóvel — nome do tópico (app gratuita “ntfy”)','avisoNtfy',S,{ph:'ex.: stock-minhaempresa-7421'})}<div class="sub">Instale a app ntfy no telemóvel e subscreva este tópico. Escolha um nome difícil de adivinhar: quem o souber recebe os avisos.</div></div></div>
  <div class="card"><h3 style="margin-bottom:10px">Nuvem — partilha entre aparelhos</h3><p class="sub" style="margin-top:0">Liga a app ao Supabase da empresa: os produtos, o stock e as guias ficam iguais em todos os aparelhos, e o aviso de stock baixo sai automaticamente. Sem esta ligação, tudo continua a funcionar só neste aparelho. Passos de preparação no ficheiro <b>LEIA-ME-nuvem.txt</b>.</p>
   <div class="grid w2">${fld('Endereço da base de dados (URL do projeto)','cat.sbUrl',S,{ph:'https://xxxx.supabase.co'})}${fld('Chave pública (anon / publishable)','cat.sbKey',S)}</div>
   ${nvOn()?`<div style="margin-top:12px"><b>Ligado</b> como ${esc(NV.sess.email)} (${NV.papel==='admin'?'administrador':'funcionário'})${NV.ultima?' · última sincronização às '+new Date(NV.ultima).toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}):''}${NV.erro?`<div class="sub" style="color:#b3261e">${esc(NV.erro)}</div>`:''}<div class="bar" style="margin:8px 0 0"><button class="btn" id="nvNow">Sincronizar agora</button><button class="btn" id="nvOut">Sair da nuvem</button></div></div>`
   :`<div class="grid w2" style="margin-top:12px"><label>E-mail de acesso<input id="nvEm" type="email" autocomplete="off"></label><label>Palavra-passe<input id="nvPw" type="password" autocomplete="off"></label></div><div class="bar" style="margin:8px 0 0"><button class="btn pri" id="nvIn">Entrar na nuvem</button></div><div class="sub" id="nvSt">${NV.erro?esc(NV.erro):''}</div>`}</div>
+ ${equipaCard()}
  <div class="card"><h3 style="margin-bottom:6px">Guardar automaticamente na Drive</h3><p class="sub" style="margin-top:0">Cada alteração (produtos, preços, site, guias) é copiada sozinha para a Drive, e uma vez por dia é enviada por email. Assim não se perde nada.</p>
   <div class="grid w2"><label>Email para receber a cópia diária<input id="bkEm" type="email" value="${esc(bkCfg().email)}" placeholder="email do cliente"></label><label>Link do Google (Apps Script)<input id="bkUrl" value="${esc(bkCfg().url)}" placeholder="https://script.google.com/macros/s/…/exec"></label></div>
   <label style="display:flex;flex-direction:row;gap:8px;align-items:center;margin:8px 0"><input type="checkbox" id="bkAuto" ${bkCfg().auto?'checked':''} style="width:auto"> Guardar sozinho depois de cada alteração</label>
@@ -1448,7 +1460,8 @@ function vConfig(m){const S=DB.set;cur=S;afterInput=el=>{save();renderTabs()};
  const lx=$('#logoX');if(lx)lx.onclick=()=>{S.empresa.logo='';save();vConfig(m)};
  if($('#nvIn'))$('#nvIn').onclick=async()=>{const st=$('#nvSt');st.textContent='A entrar…';try{await nvLogin($('#nvEm').value.trim(),$('#nvPw').value);toast('Ligado à nuvem');render()}catch(e){st.textContent=e.message}};
  if($('#nvNow'))$('#nvNow').onclick=async()=>{await nvSync(false);render()};
- if($('#nvOut'))$('#nvOut').onclick=()=>{NV={};nvSave();render()};
+ if($('#nvOut'))$('#nvOut').onclick=sairNuvem;
+ if($('#eqCard'))eqIniciar();
  $('#ivaAdd').onclick=()=>{S.ivaTipos.push({id:'t'+uid(),nome:'Novo tipo',c:0.23,m:0.22,a:0.16});save();vConfig(m)};
  $('#ivaDef').onclick=e=>confirmBtn(e.target,()=>{S.ivaTipos=ivaTiposDef();save();vConfig(m);toast('Taxas repostas')});
  document.querySelectorAll('[data-ivarm]').forEach(b=>b.onclick=()=>confirmBtn(b,()=>{S.ivaTipos.splice(+b.dataset.ivarm,1);save();vConfig(m)}));
@@ -1629,9 +1642,96 @@ function printTabela(){const L=filtrados();let last=null,h='';
   h+=`<tr><td>${esc(p.ref)}</td><td>${esc(p.nome)}</td><td>${esc(p.formato)}</td><td style="text-align:right">${E(c.pvp)}</td><td style="text-align:right">${E(c.pvpIva)}</td><td style="text-align:right">${p.embQt>1?E(c.embIva)+' / '+esc(p.embNome):''}</td></tr>`}
  doPrint(`<div class="doc"><div class="hd"><div>${empresaHTML()}</div><div style="text-align:right"><h1>Tabela de preços</h1><div>${dPT(today())}</div></div></div><table><thead><tr><th>Ref.</th><th>Produto</th><th>Formato</th><th style="text-align:right">Sem IVA</th><th style="text-align:right">Com IVA</th><th style="text-align:right">Embalagem c/IVA</th></tr></thead><tbody>${h}</tbody></table></div>`)}
 
+/* ---------- entrada (login obrigatório) ---------- */
+async function sairNuvem(){
+ if(nvOn()){try{await nvSync(false)}catch(e){}
+  if(NV.erro&&!confirm('Não foi possível enviar as últimas alterações para a nuvem.\n\nSe sair agora, o que não foi enviado perde-se neste aparelho.\n\nOK = sair mesmo assim.\nCancelar = ficar.'))return}
+ try{localStorage.removeItem(KEY);localStorage.removeItem(NVK)}catch(e){}
+ location.reload()}
+function mostraEntrada(msg){
+ document.body.classList.add('gated');
+ let g=document.getElementById('gate');if(!g){g=document.createElement('div');g.id='gate';document.body.appendChild(g)}
+ g.innerHTML=`<form class="gbox" id="gForm" autocomplete="on"><h1>Preços e Guias</h1><p class="sub">Entre com o seu e-mail e palavra-passe.</p>
+ <label>E-mail<input id="gEm" type="email" autocomplete="username" required></label>
+ <label>Palavra-passe<input id="gPw" type="password" autocomplete="current-password" required></label>
+ <button class="btn pri" id="gBt" type="submit">Entrar</button><div class="sub" id="gSt" role="status">${esc(msg||'')}</div><div class="sub">Sem acesso ou esqueceu-se da palavra-passe? Peça ao dono um link novo.</div></form>`;
+ document.getElementById('gForm').onsubmit=async ev=>{ev.preventDefault();const st=document.getElementById('gSt'),bt=document.getElementById('gBt');bt.disabled=true;st.textContent='A entrar…';
+  try{window.__entrada=true;await nvLogin(document.getElementById('gEm').value.trim(),document.getElementById('gPw').value);window.__entrada=false;
+   try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}
+   g.remove();document.body.classList.remove('gated');sairBtn();render()}
+  catch(e){window.__entrada=false;st.textContent=e.message;bt.disabled=false}}}
+function sairBtn(){const h=document.querySelector('header.top');if(!h||document.getElementById('btnSair'))return;const b=document.createElement('button');b.id='btnSair';b.className='btn sm';b.textContent='Sair';b.title='Terminar sessão neste aparelho';b.onclick=sairNuvem;h.appendChild(b)}
+/* ---------- convite: criar palavra-passe com o link recebido ---------- */
+function lerHashConvite(){const h=location.hash.replace(/^#/,'');if(!h)return null;const q=new URLSearchParams(h);
+ if(q.get('error'))return{erro:'O link expirou ou já foi usado. Peça ao dono um link novo.'};
+ if(q.get('access_token')&&['invite','recovery','signup','magiclink'].includes(q.get('type')))return{at:q.get('access_token'),rt:q.get('refresh_token'),exp:+q.get('expires_in')||3600};return null}
+function mostraDefinirSenha(c){
+ document.body.classList.add('gated');
+ let g=document.getElementById('gate');if(!g){g=document.createElement('div');g.id='gate';document.body.appendChild(g)}
+ g.innerHTML=`<form class="gbox" id="gForm"><h1>Criar palavra-passe</h1><p class="sub">Escolha uma palavra-passe com pelo menos 8 caracteres. Depois entra sempre com o seu e-mail e esta palavra-passe.</p>
+ <label>Palavra-passe<input id="gP1" type="password" autocomplete="new-password" minlength="8" required></label>
+ <label>Repetir palavra-passe<input id="gP2" type="password" autocomplete="new-password" minlength="8" required></label>
+ <button class="btn pri" id="gBt" type="submit">Guardar e entrar</button><div class="sub" id="gSt" role="status"></div></form>`;
+ document.getElementById('gForm').onsubmit=async ev=>{ev.preventDefault();const st=document.getElementById('gSt'),bt=document.getElementById('gBt');
+  const a=document.getElementById('gP1').value,b=document.getElementById('gP2').value;
+  if(a!==b){st.textContent='As duas palavras-passe têm de ser iguais.';return}
+  if(a.length<8){st.textContent='Use pelo menos 8 caracteres.';return}
+  bt.disabled=true;st.textContent='A guardar…';
+  try{const{u,k}=nvCfg();
+   const r=await fetch(u+'/auth/v1/user',{method:'PUT',headers:{apikey:k,Authorization:'Bearer '+c.at,'Content-Type':'application/json'},body:JSON.stringify({password:a})});
+   if(!r.ok)throw new Error('Não foi possível guardar. O link pode ter expirado: peça um novo ao dono.');
+   const j=await r.json();
+   NV={sess:{at:c.at,rt:c.rt,exp:Date.now()+c.exp*1000,email:j.email||''},h:{},mvh:{},dv:0,dh:null};nvSave();
+   history.replaceState(null,'',location.pathname+location.search);
+   const p=await nvReq('perfis?select=papel,paginas,ativo');
+   if(!p||!p[0]){NV={};nvSave();throw new Error('Ainda não tem acesso. Fale com o dono.')}
+   if(p[0].ativo===false){NV={};nvSave();throw new Error('O seu acesso está desativado. Fale com o dono.')}
+   NV.papel=p[0].papel;NV.paginas=p[0].paginas||[];nvSave();
+   window.__entrada=true;await nvSync(true);window.__entrada=false;
+   try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}
+   g.remove();document.body.classList.remove('gated');sairBtn();render()}
+  catch(e){window.__entrada=false;st.textContent=e.message;bt.disabled=false}}}
+/* ---------- equipa (só o dono): criar acessos e escolher páginas ---------- */
+const linkApp=()=>/^https?:$/.test(location.protocol)?location.origin+location.pathname:'';
+async function eqApi(acao,dados={}){const{u,k}=nvCfg(),tk=await nvTok();
+ const r=await fetch(u+'/functions/v1/gerir-equipa',{method:'POST',headers:{apikey:k,Authorization:'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify(Object.assign({acao,redirectTo:linkApp()},dados))});
+ const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.erro||('Erro '+r.status+' (a função gerir-equipa já está publicada?)'));return j}
+function equipaCard(){if(!nvOn()||NV.papel!=='admin')return'';
+ return `<div class="card" id="eqCard"><h3 style="margin-bottom:6px">Equipa — acessos dos funcionários</h3>
+ <p class="sub" style="margin-top:0">Escreva o e-mail do funcionário e escolha as páginas que ele pode ver. Todos veem sempre <b>Guias</b> e <b>Stock</b>. O funcionário recebe um link seu (por WhatsApp ou e-mail), cria a palavra-passe e entra. Pode mudar as páginas, desativar ou remover a qualquer momento.</p>
+ <div id="eqLista" class="sub">A carregar…</div>
+ <div class="grid w2" style="margin-top:12px"><label>Nome<input id="eqNome" placeholder="ex.: Pedro"></label><label>E-mail<input id="eqEmail" type="email" placeholder="ex.: pedro@exemplo.pt"></label></div>
+ <div class="sub" style="margin:8px 0 4px">Páginas extra:</div><div class="bar" style="margin:0 0 8px;gap:12px">${PAG_OPC.map(([k,l])=>`<label style="display:flex;flex-direction:row;gap:6px;align-items:center"><input type="checkbox" data-eqnovo="${k}" style="width:auto">${l}</label>`).join('')}</div>
+ <div class="bar" style="margin:0"><button class="btn pri" id="eqCriar">Criar acesso e gerar link</button></div>
+ <div id="eqLink" style="margin-top:10px"></div>
+ ${linkApp()?'':'<div class="sub" style="margin-top:8px;color:#a15c00">Nota: o link só funciona quando a app estiver publicada com endereço https. Pode criar já os acessos; depois gere o link com “Novo link”.</div>'}</div>`}
+function eqLinhaHTML(m){const adm=m.papel==='admin';
+ const est=m.ativo===false?'desativado':(m.pendente?'ainda não entrou':'ativo');
+ const eu=(NV.sess&&NV.sess.email||'').toLowerCase()===String(m.email||'').toLowerCase();
+ const pg=adm?'<span class="sub">Administrador: vê e altera tudo'+(eu?' (é você)':'')+'</span>':PAG_OPC.map(([k,l])=>`<label style="display:flex;flex-direction:row;gap:5px;align-items:center;font-size:13px"><input type="checkbox" data-eqp="${m.id}|${k}" ${(m.paginas||[]).includes(k)?'checked':''} style="width:auto">${l}</label>`).join('');
+ return `<div style="border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><b>${esc(m.nome||m.email)}</b> <span class="sub">${esc(m.email)} · ${est}</span></div>
+ ${adm?(eu?'':`<div class="bar" style="margin:0"><button class="btn sm" data-eqp2="${m.id}|func">Passar a funcionário</button></div>`):`<div class="bar" style="margin:0"><button class="btn sm" data-eqp2="${m.id}|admin">Tornar administrador</button><button class="btn sm" data-eql="${m.id}">Novo link</button><button class="btn sm" data-eqa="${m.id}">${m.ativo===false?'Ativar':'Desativar'}</button><button class="btn sm danger" data-eqr="${m.id}">Remover</button></div>`}</div>
+ <div class="bar" style="margin:8px 0 0;gap:12px">${pg}</div></div>`}
+function eqMostraLink(link,nome){const b=$('#eqLink');if(!b)return;
+ const txt='Olá'+(nome?' '+nome:'')+'! Este é o seu acesso a Preços e Guias. Abra o link, crie a sua palavra-passe e entre: '+link;
+ b.innerHTML=`<div class="sub">Link para enviar ao funcionário (use uma só vez, expira em pouco tempo):</div><input id="eqLk" readonly value="${esc(link)}" style="width:100%;margin:6px 0"><div class="bar" style="margin:0"><button class="btn" id="eqCp">Copiar link</button><a class="btn" style="text-decoration:none;color:var(--ink)" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(txt)}">Enviar por WhatsApp</a></div>`;
+ $('#eqCp').onclick=async()=>{try{await navigator.clipboard.writeText(link);toast('Link copiado')}catch(e){$('#eqLk').select();toast('Selecione e copie o link')}}}
+async function eqIniciar(){const L=$('#eqLista');
+ const pinta=async()=>{try{const r=await eqApi('listar');L.innerHTML=(r.equipa||[]).map(eqLinhaHTML).join('')||'<div class="sub">Ainda sem funcionários.</div>';ligar()}catch(e){L.textContent=e.message}};
+ const ligar=()=>{
+  L.querySelectorAll('[data-eqp]').forEach(c=>c.onchange=async()=>{const[id]=c.dataset.eqp.split('|');const pags=[...L.querySelectorAll('[data-eqp^="'+id+'|"]')].filter(x=>x.checked).map(x=>x.dataset.eqp.split('|')[1]);try{await eqApi('atualizar',{id,paginas:pags});toast('Páginas guardadas')}catch(e){toast(e.message)}});
+  L.querySelectorAll('[data-eqp2]').forEach(b=>b.onclick=async()=>{const[id,papel]=b.dataset.eqp2.split('|');const msg=papel==='admin'?'Tornar este utilizador administrador?\n\nVai ver e alterar tudo: custos, margens, clientes, equipa e definições. Só deve fazê-lo a quem confia totalmente.':'Passar este administrador a funcionário? Fica só com as páginas que escolher.';if(!confirm(msg))return;try{await eqApi('papel',{id,papel});pinta()}catch(e){toast(e.message)}});
+  L.querySelectorAll('[data-eql]').forEach(b=>b.onclick=async()=>{try{const r=await eqApi('novolink',{id:b.dataset.eql});eqMostraLink(r.link,'')}catch(e){toast(e.message)}});
+  L.querySelectorAll('[data-eqa]').forEach(b=>b.onclick=async()=>{try{await eqApi('ativar',{id:b.dataset.eqa,ativo:b.textContent.trim()==='Ativar'});pinta()}catch(e){toast(e.message)}});
+  L.querySelectorAll('[data-eqr]').forEach(b=>b.onclick=async()=>{if(!confirm('Remover este funcionário? Perde o acesso de imediato.'))return;try{await eqApi('remover',{id:b.dataset.eqr});pinta()}catch(e){toast(e.message)}})};
+ $('#eqCriar').onclick=async()=>{const email=$('#eqEmail').value.trim(),nome=$('#eqNome').value.trim();if(!/^\S+@\S+\.\S+$/.test(email)){toast('Escreva um e-mail válido');return}
+  const paginas=[...document.querySelectorAll('[data-eqnovo]')].filter(x=>x.checked).map(x=>x.dataset.eqnovo);
+  try{const r=await eqApi('convidar',{email,nome,paginas});eqMostraLink(r.link,nome);$('#eqEmail').value='';$('#eqNome').value='';pinta()}catch(e){toast(e.message)}};
+ pinta()}
 /* ---------- arranque ---------- */
 document.addEventListener('click',e=>{const t=e.target.closest('[data-tab]');if(t)go(t.dataset.tab)});
-load();render();
+load();
+{const cv=lerHashConvite();if(cv){cv.erro?mostraEntrada(cv.erro):mostraDefinirSenha(cv)}else if(nvOn()){sairBtn();render()}else{mostraEntrada()}}
 </script>
 </body>
 </html>
