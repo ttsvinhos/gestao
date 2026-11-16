@@ -218,7 +218,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v35 · 16/11/2026';
+const APP_VERSAO='v36 · 16/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -1472,6 +1472,8 @@ document.getElementById('q').addEventListener('input',function(ev){q=ev.target.v
 function pesq(on){var b=document.getElementById('lupa'),pp=document.getElementById('pesq'),qi=document.getElementById('q');pp.hidden=!on;b.setAttribute('aria-expanded',on);
  if(on){qi.focus()}else{q='';tg='';qi.value='';chips();list()}}
 gfetch();
+function fitMarca(){try{var t=document.querySelector('.marca-texto'),sm=t&&t.querySelector('small');if(!sm)return;var r=document.createRange();r.selectNodeContents(t.firstChild);var wt=r.getBoundingClientRect().width;sm.style.display='inline-block';sm.style.fontSize='';var fs=parseFloat(getComputedStyle(sm).fontSize),ws=sm.getBoundingClientRect().width;if(wt>0&&ws>wt*.92){sm.style.fontSize=Math.max(6,fs*wt*.92/ws)+'px'}}catch(x){}}
+fitMarca();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitMarca);window.addEventListener('load',fitMarca);window.addEventListener('resize',fitMarca);
 catLive();
 document.getElementById('fvb').addEventListener('click',function(){setFv(!fv)});
 document.getElementById('fvTop').addEventListener('click',function(){document.getElementById('produtos').scrollIntoView({behavior:'smooth'});setFv(true)});
