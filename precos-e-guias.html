@@ -218,7 +218,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v18 · 16/11/2026';
+const APP_VERSAO='v19 · 16/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -416,6 +416,10 @@ function syncGuiaStock(G){DB.mov=(DB.mov||[]).filter(m=>m.guiaId!==G.id);const a
  G.linhas.forEach(l=>{if(!l.prodId)return;const un=Math.round(l.qt*(l.unid==='emb'?(l.embQt||1):1));if(un)ag[l.prodId]=(ag[l.prodId]||0)+un});
  Object.keys(ag).forEach(pid=>DB.mov.push({id:'g:'+G.id+':'+pid,prodId:pid,data:G.data,tipo:'saida',un:-ag[pid],guiaId:G.id,nota:gNum(G)}))}
 function migrate(d){const S=d.set;
+ if(S&&!S.cliBack&&!d.exemplo){S.cliBack=1;d.cli=d.cli||[];const nz=x=>(x||'').trim().toLowerCase(),nf9=x=>(x||'').replace(/\s/g,'');
+  (d.guias||[]).slice().sort((x,y)=>String(x.data).localeCompare(String(y.data))).forEach(g=>{const c=g.cliente||{},n=(c.nome||'').trim();if(!n)return;
+   const ex=d.cli.find(k=>k.id===c.id)||d.cli.find(k=>(nf9(c.nif)&&nf9(c.nif)!=='999999990'&&nf9(k.nif)===nf9(c.nif))||nz(k.nome)===nz(n));
+   if(ex){if(g.cliente)g.cliente.id=ex.id}else{const id=c.id||('c'+Math.random().toString(36).slice(2,10));d.cli.push({id,nome:n,nif:c.nif||'',morada:c.morada||'',tel:'',desc:0,regiao:null,obs:''});if(g.cliente)g.cliente.id=id}})}
  if(S&&!S.catOpt){(d.prod||[]).forEach(p=>{p.pub=p.pub!==false});S.catOpt=1}
  if(!Array.isArray(d.mov))d.mov=[];
  if(!Array.isArray(d.desp))d.desp=[];
