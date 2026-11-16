@@ -218,7 +218,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v13 · 16/11/2026';
+const APP_VERSAO='v14 · 16/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -795,11 +795,10 @@ alter table public.catalogo enable row level security;
 drop policy if exists "ler catalogo" on public.catalogo;
 create policy "ler catalogo" on public.catalogo for select to anon, authenticated using (true);
 drop policy if exists "gravar catalogo" on public.catalogo;
-create policy "gravar catalogo" on public.catalogo for insert to authenticated with check (true);
+create policy "gravar catalogo" on public.catalogo for insert to authenticated with check (exists (select 1 from public.perfis p where p.user_id = auth.uid() and p.papel = 'admin' and p.ativo is not false));
 drop policy if exists "atualizar catalogo" on public.catalogo;
-create policy "atualizar catalogo" on public.catalogo for update to authenticated using (true) with check (true);
--- Depois: Authentication > Users > criar UM utilizador (e-mail e palavra-passe da empresa)
--- e em Authentication > Sign In / Providers desligar "Allow new users to sign up".
+create policy "atualizar catalogo" on public.catalogo for update to authenticated using (exists (select 1 from public.perfis p where p.user_id = auth.uid() and p.papel = 'admin' and p.ativo is not false)) with check (exists (select 1 from public.perfis p where p.user_id = auth.uid() and p.papel = 'admin' and p.ativo is not false));
+-- Só utilizadores com papel 'admin' (tabela perfis) conseguem publicar. Qualquer pessoa pode ler.
 `;
 const GOSTOS_SQL=`-- Gostos dos visitantes (Preços e Guias / catálogo online)
 -- Executar uma vez no SQL Editor do Supabase da empresa.
@@ -843,7 +842,8 @@ function vCatalogo(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
   <ol><li>Os produtos e preços vêm do separador <b>Produtos</b>. O site nunca mostra custos, descontos de fábrica, transporte nem margens.</li>
   <li>Aqui, em <b>Catálogo / Site</b>, escolhe o que aparece e como fica. A página está ordenada pelo uso diário: 1 Produtos, 2 Destaques, 3 Campanhas, 4 Cabazes; depois, o que se configura uma vez (5 Textos e aspeto), 6 Castas e 7 Gostos.</li>
   <li>Carregue em <b>Gerar página (ficheiro)</b>: descarrega o ficheiro <b>index.html</b>. É esse o site.</li>
-  <li>Os preços ficam fixos no momento em que gera. <b>Sempre que mudar preços, destaques ou cabazes, gere outra vez</b> e substitua o ficheiro antigo.</li></ol>
+  <li>Os preços ficam fixos no momento em que gera. <b>Sempre que mudar preços, destaques ou cabazes, gere outra vez</b> e substitua o ficheiro antigo.</li>
+  <li><b>Atualizar só os preços, sem gerar outro ficheiro</b>: depois de ligar o site à base de dados (uma vez), carregue em <b>☁ Publicar preços no site</b> (no topo desta página). Só o administrador, com sessão iniciada, pode. Para mudar textos, imagens ou aspeto, continua a ser preciso gerar o <b>index.html</b>.</li></ol>
 
   <h4>Antes de começar (uma vez)</h4>
   <ol><li>Em <b>Definições → Empresa</b>: nome, logótipo e <b>telefone</b>. O telefone é o número do botão verde do WhatsApp no site (sem telefone, o botão não aparece).</li>
@@ -952,7 +952,8 @@ function vCatalogo(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
   <li><b>Imagem de cabaz vazia</b>: o link deixou de funcionar; carregue a foto como ficheiro.</li>
   <li><b>Um produto não aparece</b>: confirme a coluna “Publicar” na tabela.</li></ul>
   </div></div>
- <div class="bar" style="margin:12px 0 4px"><button class="btn" id="cPrev">Pré-visualizar</button><button class="btn pri" id="cGen">Gerar página (ficheiro)</button></div>
+ <div class="bar" style="margin:12px 0 4px"><button class="btn" id="cPrev">Pré-visualizar</button><button class="btn pri" id="cGen">Gerar página (ficheiro)</button><button class="btn" id="pubNow" title="Envia os preços e produtos atuais para o site online, sem gerar outro ficheiro">☁ Publicar preços no site</button></div>
+ <div class="sub" id="pubSt" style="margin-bottom:4px"></div>
  <div class="sub" style="margin-bottom:6px">A página gerada é um único ficheiro HTML. Pode enviá-lo ou pô-lo num alojamento quando quiser. Os preços ficam fixos no momento em que gera, por isso gere outra vez depois de os alterar.</div>
  <h3 style="margin:18px 0 8px">1 · Produtos no catálogo</h3>
  ${L.length?`<div class="tw"><table><thead><tr><th>Produto</th><th>Foto</th><th>Categoria</th><th>Preço na página</th><th>Publicar</th><th>Gostos</th><th>Mostrar preço</th></tr></thead><tbody>
@@ -989,15 +990,10 @@ function vCatalogo(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
  <div id="castas"></div><div class="bar"><button class="btn" id="caAdd">+ Casta</button><button class="btn" id="caSeed">Adicionar castas portuguesas comuns</button></div> <details style="margin-top:22px"><summary><b>7 · Gostos dos visitantes</b> <span class="sub">(avançado, base de dados online)</span></summary>
  <div></div><p class="sub" style="margin-top:0">Quando o site estiver online, cada visitante pode marcar o coração e o site conta os gostos de todos. Para isso é preciso uma base de dados online (Supabase da empresa). Sem esta ligação, o coração só guarda os favoritos no navegador de cada pessoa.</p>
  <div class="card" style="display:flex;flex-direction:column;gap:12px">
-  <div class="grid w2">${fld('Endereço da base de dados (URL do projeto)','sbUrl',C,{ph:'https://xxxx.supabase.co'})}${fld('Chave pública (anon / publishable)','sbKey',C)}</div>
   <div class="grid w2">${fld('Título da linha dos mais gostados','topTitulo',C,{ph:'Os mais gostados'})}<label>Mostrar linha “Os mais gostados”<select id="cTop"><option value="0" ${+C.topN?'':'selected'}>Não mostrar</option>${[3,4,6].map(n=>`<option value="${n}" ${+C.topN===n?'selected':''}>Os ${n} mais gostados</option>`).join('')}</select></label></div>
-  <div class="bar" style="margin:0"><button class="btn" id="gTest">Testar ligação e ver gostos</button><button class="btn" id="gSql">Descarregar SQL de preparação</button></div>
-  <h4 style="margin:6px 0 0">Publicar produtos no site (automático)</h4>
-  <div class="sub" style="margin:0">Só segue para o site o que já aparece na tabela abaixo: nome, formato, ficha e <b>preço final</b>. Custos, margens e descontos nunca saem da app.</div>
-  <div class="grid w2">${fld('E-mail do administrador (Supabase)','sbEmail',C)}<label>Palavra-passe (não fica guardada)<input type="password" id="sbPass" autocomplete="off"></label></div>
-  <div class="bar" style="margin:0"><button class="btn pri" id="pubNow">Publicar no site agora</button><button class="btn" id="cSql">Descarregar SQL do catálogo</button></div>
-  <div class="sub" id="pubSt"></div>
-  <div class="sub">A chave pública pode ir dentro do site. Nunca use aqui a chave “secret” ou “service role”. O SQL cria a tabela e a função que contam os gostos; corre-se uma vez no Supabase.</div></div>
+  <div class="bar" style="margin:0"><button class="btn" id="gTest">Testar ligação e ver gostos</button></div>
+  <div class="bar" style="margin:0"><button class="btn" id="cSql">Descarregar SQL de preparação (uma vez)</button></div>
+  <div class="sub">O SQL cria as tabelas do catálogo e dos gostos. Corre-se <b>uma vez</b> no Supabase da empresa (SQL Editor → colar → Run). Só o administrador consegue publicar preços.</div></div>
  </details>
 `;
  m.querySelectorAll('[data-edp]').forEach(b=>b.onclick=()=>editProd(b.dataset.edp));
@@ -1054,20 +1050,15 @@ function vCatalogo(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
   else if(t.dataset.imv!==undefined){const [i,j]=t.dataset.imv.split('.').map(Number);mvA(R[i].itens,j,+t.dataset.d);save();drawDest()}
   else if(t.dataset.ix!==undefined){const [i,j]=t.dataset.ix.split('.').map(Number);R[i].itens.splice(j,1);save();drawDest()}};
  $('#cPrecos').onchange=e=>{C.precos=e.target.value==='1';save();vCatalogo(m)};
- $('#cSql').onclick=()=>{download('catalogo-supabase.sql',CATALOGO_SQL,'text/plain');toast('SQL descarregado')};
- $('#pubNow').onclick=async()=>{const u=String(C.sbUrl||'').trim().replace(/\/+$/,''),k=String(C.sbKey||'').trim(),em=String(C.sbEmail||'').trim(),pw=$('#sbPass').value,st=$('#pubSt');
-  if(!u||!k||!em||!pw){st.textContent='Preencha o endereço, a chave pública, o e-mail e a palavra-passe.';return}
+ $('#cSql').onclick=()=>{download('ligar-site-supabase.sql',CATALOGO_SQL+'\n'+GOSTOS_SQL,'text/plain');toast('SQL descarregado')};
+ $('#pubNow').onclick=async()=>{const st=$('#pubSt');
+  if(!nvOn()||NV.papel!=='admin'){st.textContent='Só o administrador, com sessão iniciada, pode publicar no site.';return}
   st.textContent='A publicar…';
-  try{const a=await fetch(u+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:k,'Content-Type':'application/json'},body:JSON.stringify({email:em,password:pw})});
-   if(!a.ok)throw new Error('Entrada recusada: confirme e-mail e palavra-passe.');const tk=(await a.json()).access_token;
-   const body=JSON.stringify({id:1,dados:siteData(),atualizado:new Date().toISOString()});
-   const r=await fetch(u+'/rest/v1/catalogo?on_conflict=id',{method:'POST',headers:{apikey:k,Authorization:'Bearer '+tk,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body});
-   if(!r.ok)throw new Error('Não foi possível gravar ('+r.status+'). O SQL do catálogo já foi corrido?');
-   st.textContent='Publicado às '+new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})+'. O site mostra a nova versão na próxima abertura.';
-  }catch(e){st.textContent=e.message||'Falhou a ligação.'}};
- $('#gSql').onclick=()=>{download('gostos-supabase.sql',GOSTOS_SQL,'text/plain');toast('SQL descarregado')};
+  try{await nvUp('catalogo','id',{id:1,dados:siteData(),atualizado:new Date().toISOString()});
+   st.textContent='Publicado às '+new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})+'. O site mostra os preços novos na próxima abertura.'}
+  catch(e){st.textContent='Não foi possível publicar ('+(e.message||'erro')+'). O SQL de preparação já foi corrido no Supabase?'}};
  $('#cTop').onchange=e=>{C.topN=+e.target.value;save()};
- $('#gTest').onclick=async()=>{const u=String(C.sbUrl||'').trim().replace(/\/+$/,''),k=String(C.sbKey||'').trim();if(!u||!k){toast('Preencha o endereço e a chave pública');return}
+ $('#gTest').onclick=async()=>{const{u,k}=nvCfg();
   try{const r=await fetch(u+'/rest/v1/gostos?select=produto,total',{headers:{apikey:k,Authorization:'Bearer '+k}});if(!r.ok)throw 0;const a=await r.json();GC={};a.forEach(x=>{GC[x.produto]=x.total});toast('Ligação OK · '+a.length+' produtos com gostos');vCatalogo(m)}
   catch(x){toast('Não foi possível ligar. Verifique o endereço, a chave e se o SQL foi executado.')}};
  {const fp=$('#cFp');fp.value=C.fundoProd||'';fp.onchange=e=>{C.fundoProd=e.target.value;save();vCatalogo(m)};const fi=$('#cFpIn');if(fi)fi.onchange=e=>{const f=e.target.files[0];if(f)imgToData(f,800,d=>{C.fundoProdImg=d;save();toast('Fundo carregado');vCatalogo(m)})}}$('#cIdade').onchange=e=>{C.idade=e.target.value==='1';save()};$('#cEst').onchange=e=>{C.estilo=e.target.value;save()};$('#cFundoIn').onchange=e=>{const f=e.target.files[0];if(f)imgToData(f,1800,d=>{C.capaFundo=d;C.estilo='imagem';save();toast('Imagem de fundo carregada');vCatalogo(m)})};const fx2=$('#cFundoX');if(fx2)fx2.onclick=()=>{C.capaFundo='';if(C.estilo==='imagem')C.estilo='aurora';save();vCatalogo(m)};$('#cLet').onchange=e=>{C.letra=e.target.value;save()};
@@ -1084,7 +1075,7 @@ const PF={"dourado": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAc
 function siteData(){const S=DB.set,C=S.cat,e=S.empresa;const vin=String(C.vinhos||'').split(',').map(x=>x.trim()).filter(Boolean);const vo=c=>{const i=vin.findIndex(v=>norm(v)===norm(c));return i<0?999:i};
  const prods=DB.prod.filter(p=>p.pub!==false).sort((a,b)=>vo(a.categoria)-vo(b.categoria)||(a.categoria||'').localeCompare(b.categoria||'')||a.nome.localeCompare(b.nome));
  const destq=(C.destaques||[]).filter(r=>r.ativo!==false).map(r=>({t:r.titulo||'',k:r.itens.map(id=>prods.findIndex(p=>p.id===id)).filter(k=>k>=0)})).filter(r=>r.k.length);
- return{v:Date.now(),fp:(C.fundoProd==='meu'?(C.fundoProdImg||''):(PF[C.fundoProd]||'')),est:C.estilo||'aurora',fundo:C.capaFundo||'',letra:C.letra||'fina',idade:C.idade!==false,dest:destq,gostos:(C.sbUrl&&C.sbKey)?{u:String(C.sbUrl).trim().replace(/\/+$/,''),k:String(C.sbKey).trim()}:null,top:{n:+C.topN||0,t:C.topTitulo||'Os mais gostados'},titulo:C.titulo||e.nome||'Catálogo',capaTit:String(C.capaTit||'').trim(),sub:C.subtitulo||'',vant:String(C.vantagens||'').split('\n').map(x=>x.trim()).filter(Boolean).slice(0,4),intro:C.intro||'',aviso:C.aviso||'',iva:C.iva!==false,logo:e.logo||'',emp:{nome:e.nome,morada:e.morada,cp:e.cp,tel:e.tel,email:e.email},
+ return{v:Date.now(),fp:(C.fundoProd==='meu'?(C.fundoProdImg||''):(PF[C.fundoProd]||'')),est:C.estilo||'aurora',fundo:C.capaFundo||'',letra:C.letra||'fina',idade:C.idade!==false,dest:destq,gostos:(nvCfg().u&&nvCfg().k)?{u:nvCfg().u,k:nvCfg().k}:null,top:{n:+C.topN||0,t:C.topTitulo||'Os mais gostados'},titulo:C.titulo||e.nome||'Catálogo',capaTit:String(C.capaTit||'').trim(),sub:C.subtitulo||'',vant:String(C.vantagens||'').split('\n').map(x=>x.trim()).filter(Boolean).slice(0,4),intro:C.intro||'',aviso:C.aviso||'',iva:C.iva!==false,logo:e.logo||'',emp:{nome:e.nome,morada:e.morada,cp:e.cp,tel:e.tel,email:e.email},
  capaInfo:!!C.capaInfo,cortina:C.cortina||'fechada',cortTxt:C.cortinaTexto||'',hov:(()=>{const r=(C.destaques||[]).filter(r=>r.ativo!==false&&r.itens.some(id=>prods.some(p=>p.id===id)))[0];const o={};if(r&&r.txt)r.itens.slice(0,3).forEach(id=>{const k=prods.findIndex(p=>p.id===id),x=r.txt[id];if(k>=0&&x)o[k]={t:x.t||'',p:x.p||'',d:x.d||''}});return o})(),cab:(C.cabazes&&C.cabazes.ativo!==false&&(C.cabazes.itens||[]).some(c=>c.nome||c.foto))?{t:C.cabazes.titulo||'Cabazes',k:C.cabazes.itens.filter(c=>c.nome||c.foto).map(c=>({n:c.nome||'',p:c.preco||'',d:c.desc||'',f:c.foto||''}))}:null,vin:vin,items:prods.map(p=>{const f=p.ficha||{};
   return{id:p.id,w:vo(p.categoria)<999?1:0,n:p.nome,r:p.ref||'',c:p.categoria||'',f:p.formato||'',e:p.embQt>1?(p.embNome||'Emb.')+' de '+p.embQt:'',p:precoPublico(p),pr:null,pt:'',pm:pmList(p),cq:(()=>{const n=parseInt(f.cxQt,10);return n>1?n:0})(),cp:(()=>{const t=String(f.cxPreco||'').trim();if(!t)return null;const n=parseFloat(t.indexOf(',')>=0?t.replace(/\./g,'').replace(',','.'):t);return isFinite(n)&&n>0?n:null})(),
   t:String(f.tags||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean),cd:castaDescs(f.casta).map(c=>[c.nome,c.desc]),fi:{desc:f.desc||'',produtor:f.produtor||'',regiao:f.regiao||'',casta:f.casta||'',ano:f.ano||'',alc:f.alc||'',temp:f.temp||'',guarda:f.guarda||'',prova:f.prova||'',harmon:f.harmon||'',notas:f.notas||'',foto:f.foto||''},
