@@ -218,7 +218,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v23 · 16/11/2026';
+const APP_VERSAO='v24 · 16/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -1107,7 +1107,7 @@ const SITE_CSS=String.raw`:root{color-scheme:light;--azul:#1F4E8C;--azul2:#173c6
 h1,h2,h3,h4{margin:0;font-weight:700;letter-spacing:-.015em;text-wrap:balance}
 .cabecalho{background:var(--sf);border-bottom:1px solid var(--ln)}
 .cabecalho .c{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:14px;flex-wrap:wrap}
-.marca{display:flex;align-items:center;gap:12px;color:var(--ink);text-decoration:none}.marca img{width:48px;height:48px;object-fit:contain}
+.marca{display:flex;align-items:center;gap:12px;color:var(--ink);text-decoration:none}.marca img{width:80px;height:80px;object-fit:contain}
 .marca-texto{font-weight:700;font-size:1.1rem;line-height:1.2;display:flex;flex-direction:column}.marca-texto small{font-weight:600;font-size:.74rem;color:var(--mu);letter-spacing:.1em;text-transform:uppercase;margin-top:2px}
 .menu{display:flex;gap:4px}.menu a{color:var(--ink);text-decoration:none;font-weight:600;font-size:.95rem;padding:8px 14px;border-radius:8px}.menu a:hover{background:var(--sup);color:var(--azul)}
 .hero{margin-block:28px 8px;padding:40px 36px;border-radius:14px;background:var(--sup);border:1px solid var(--ln)}
@@ -1165,7 +1165,7 @@ h1,h2,h3{font-family:var(--fs);font-weight:600;letter-spacing:-.02em}
 .c{max-width:1180px}
 .cabecalho{background:transparent;border-bottom:0}
 .cabecalho .c{padding-block:20px}
-.marca img{width:54px;height:54px;border-radius:14px;background:#fff;padding:5px;box-shadow:var(--sh)}
+.marca img{width:92px;height:92px;border-radius:18px;background:#fff;padding:6px;box-shadow:var(--sh)}@media(max-width:560px){.marca img{width:68px;height:68px;border-radius:14px;padding:5px}}
 .marca-texto{font-family:var(--fs);font-size:1.25rem;font-weight:600}
 .marca-texto small{font-family:var(--fd);color:var(--ouro);letter-spacing:.2em}
 .menu{align-items:center;gap:6px;background:rgba(255,255,255,.75);backdrop-filter:blur(10px);padding:5px;border-radius:999px;box-shadow:var(--sh);border:1px solid var(--ln)}
