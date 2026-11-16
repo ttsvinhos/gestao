@@ -218,7 +218,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v26 · 16/11/2026';
+const APP_VERSAO='v27 · 16/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -990,29 +990,35 @@ function vCatalogo0(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
  <div id="cabs"></div>
  <details class="cfgsite" data-dk="5" style="margin-top:22px"><summary><b>5 · Textos e aspeto do site</b> <span class="sub">(configura-se uma vez)</span></summary>
  <div class="card" style="display:flex;flex-direction:column;gap:14px;margin-top:12px">
-  <h4 style="margin:6px 0 0;font-size:1rem">A · Textos</h4>
+  <div class="seg" role="tablist" id="t5bar" style="align-self:flex-start;flex-wrap:wrap"><button type="button" role="tab" data-t5="a" aria-selected="${(ui.t5||'a')==='a'}">Textos</button><button type="button" role="tab" data-t5="b" aria-selected="${(ui.t5||'a')==='b'}">Preços</button><button type="button" role="tab" data-t5="c" aria-selected="${(ui.t5||'a')==='c'}">Capa e banner</button><button type="button" role="tab" data-t5="d" aria-selected="${(ui.t5||'a')==='d'}">Cartões e fundo</button><button type="button" class="btn sm" id="t5prev" style="margin-left:8px">👁 Pré-visualizar o site</button></div>
+  <div data-p5="a" style="display:${(ui.t5||'a')==='a'?'flex':'none'};flex-direction:column;gap:14px">
   <div class="grid w2">${fld('Título da página','titulo',C,{ph:DB.set.empresa.nome||'Catálogo'})}${fld('Subtítulo (ex.: Vinhos e Azeites)','subtitulo',C)}</div>
   <div class="grid w2">${fld('Título grande da capa (vazio = «Os nossos vinhos»)','capaTit',C,{ph:'Os nossos vinhos'})}</div>
   ${area('Texto de apresentação','intro',C)}
   ${area('Vantagens (uma por linha, até 4; opcional)','vantagens',C)}
   ${fld('Categorias de vinho (aparecem primeiro, pela ordem indicada)','vinhos',C,{ph:'Tinto, Branco, Rosé, Espumante'})}
   ${fld('Aviso junto aos preços (opcional)','aviso',C,{ph:'Preços sujeitos a alteração'})}
-  <hr style="border:0;border-top:1px solid var(--line,#e5e5e5);width:100%">
-  <h4 style="margin:6px 0 0;font-size:1rem">B · Preços e entrada no site</h4>
+  </div>
+  <div data-p5="b" style="display:${(ui.t5||'a')==='b'?'flex':'none'};flex-direction:column;gap:14px">
   <div class="grid"><label>Preços, por omissão<select id="cPrecos"><option value="0" ${C.precos?'':'selected'}>Ocultos</option><option value="1" ${C.precos?'selected':''}>Visíveis</option></select></label>
   <label>Preço mostrado<select id="cIva"><option value="1" ${C.iva!==false?'selected':''}>Com IVA</option><option value="0" ${C.iva===false?'selected':''}>Sem IVA</option></select></label>
   <label>IVA da região<select id="cReg">${regOpts(C.regiao,'Habitual ('+regNome(DB.set.regiao)+')')}</select></label>
   <label>Confirmação de idade ao abrir<select id="cIdade"><option value="1" ${C.idade!==false?'selected':''}>Ativa (18 anos)</option><option value="0" ${C.idade===false?'selected':''}>Desativada</option></select></label></div>
-  <hr style="border:0;border-top:1px solid var(--line,#e5e5e5);width:100%">
+  </div>
+  <div data-p5="c" style="display:${(ui.t5||'a')==='c'?'flex':'none'};flex-direction:column;gap:14px">
+  <div class="sub">O banner é a imagem grande do topo, por trás do título.</div>
   <h4 style="margin:6px 0 0;font-size:1rem">C · Capa (banner)</h4><div class="sub" style="margin-top:-8px">O banner é a imagem grande do topo, por trás do título.</div>
   <div class="grid"><label>Fundo da capa<select id="cEst"><option value="aurora" ${(C.estilo||'aurora')==='aurora'?'selected':''}>Aurora (âmbar)</option><option value="ondas" ${C.estilo==='ondas'?'selected':''}>Ondas (vermelho e preto)</option><option value="vinha" ${C.estilo==='vinha'?'selected':''}>Vinha (uvas e folhas)</option><option value="imagem" ${C.estilo==='imagem'?'selected':''}>Imagem (a minha)</option></select></label>
-  <label>Imagem de fundo ${C.capaFundo?'(carregada ✓)':''}<span style="display:flex;gap:6px"><input type="file" id="cFundoIn" accept="image/*" style="flex:1">${C.capaFundo?'<button class="btn sm" id="cFundoX" type="button">Remover</button>':''}</span></label>
+  <label>Imagem do banner ${C.capaFundo?'(carregada ✓)':''}<span style="display:flex;gap:6px"><input type="file" id="cFundoIn" accept="image/*" style="flex:1">${C.capaFundo?'<button class="btn sm" id="cFundoX" type="button">Remover</button>':''}</span></label>
   <label>Letra do título<select id="cLet"><option value="fina" ${(C.letra||'fina')==='fina'?'selected':''}>Fina, maiúsculas (com ramo de louro)</option><option value="serifa" ${C.letra==='serifa'?'selected':''}>Clássica (serifa)</option><option value="manuscrita" ${C.letra==='manuscrita'?'selected':''}>Manuscrita</option></select></label></div></div></div>
-  <hr style="border:0;border-top:1px solid var(--line,#e5e5e5);width:100%">
+  </div>
+  <div data-p5="d" style="display:${(ui.t5||'a')==='d'?'flex':'none'};flex-direction:column;gap:14px">
+  <div class="sub">Cada linha aceita uma cor, uma imagem, ou as duas (a imagem fica por cima da cor). «Limpar» volta ao original.</div>
   <h4 style="margin:6px 0 0;font-size:1rem">D · Cartões dos produtos e fundo do site</h4><div class="sub" style="margin-top:-8px">Cada linha aceita uma cor, uma imagem, ou as duas (a imagem fica por cima da cor). «Limpar» volta ao original.</div>
   <div class="grid"><label>Fundo atrás dos produtos<select id="cFp"><option value="">Nenhum (creme)</option><option value="rosa">Branco com brilho rosa</option><option value="nuvens">Nuvens rosa</option><option value="pastel">Pastel arco-íris</option><option value="aguarela">Aguarela rosa-bordeaux</option><option value="dourado">Dourado suave (aguarela)</option><option value="degrade">Degradê rosa-bordeaux</option><option value="meu">A minha imagem…</option></select></label>
   ${C.fundoProd==='meu'?`<label>A minha imagem ${C.fundoProdImg?'(carregada ✓)':''}<input type="file" id="cFpIn" accept="image/*"></label>`:''}</div>
   <div style="display:flex;flex-direction:column;gap:8px">${[['Fundo da foto do cartão','fotoCor','fotoImg'],['Fundo do texto do cartão (por baixo da foto)','txtCor','txtImg'],['Fundo de todo o site','siteCor','siteImg']].map(([t,kc,ki])=>`<div class="fr" style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-top:1px solid var(--line,#e5e5e5);padding-top:8px"><b style="min-width:230px">${t}</b><input type="color" data-fc="${kc}" value="${C[kc]||'#ffffff'}" style="width:44px;height:34px;padding:2px" aria-label="Cor"><input type="file" accept="image/*" data-fi="${ki}" style="flex:1;min-width:150px"><button class="btn sm" type="button" data-fx="${kc}|${ki}">Limpar</button><span class="sub">${C[kc]?'cor ✓ ':''}${C[ki]?'imagem ✓':''}${!C[kc]&&!C[ki]?'(original)':''}</span></div>`).join('')}</div>
+  </div>
  </div>
  </details>
  <h3 style="margin:24px 0 4px">6 · Castas</h3><p class="sub" style="margin-top:0">Escreva uma descrição para cada casta. Quando o nome aparece no campo "Castas" de um produto, a descrição entra na ficha técnica e no site.</p>
@@ -1090,7 +1096,9 @@ function vCatalogo0(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
  $('#gTest').onclick=async()=>{const{u,k}=nvCfg();
   try{const r=await fetch(u+'/rest/v1/gostos?select=produto,total',{headers:{apikey:k,Authorization:'Bearer '+k}});if(!r.ok)throw 0;const a=await r.json();GC={};a.forEach(x=>{GC[x.produto]=x.total});toast('Ligação OK · '+a.length+' produtos com gostos');vCatalogo(m)}
   catch(x){toast('Não foi possível ligar. Verifique o endereço, a chave e se o SQL foi executado.')}};
- {const fp=$('#cFp');fp.value=C.fundoProd||'';fp.onchange=e=>{C.fundoProd=e.target.value;save();vCatalogo(m)};const fi=$('#cFpIn');if(fi)fi.onchange=e=>{const f=e.target.files[0];if(f)imgToData(f,800,d=>{C.fundoProdImg=d;save();toast('Fundo carregado');vCatalogo(m)})}}m.querySelectorAll('[data-fc]').forEach(i=>i.onchange=()=>{C[i.dataset.fc]=i.value;save();vCatalogo(m)});
+ {const fp=$('#cFp');fp.value=C.fundoProd||'';fp.onchange=e=>{C.fundoProd=e.target.value;save();vCatalogo(m)};const fi=$('#cFpIn');if(fi)fi.onchange=e=>{const f=e.target.files[0];if(f)imgToData(f,800,d=>{C.fundoProdImg=d;save();toast('Fundo carregado');vCatalogo(m)})}}m.querySelectorAll('[data-t5]').forEach(b=>b.onclick=()=>{ui.t5=b.dataset.t5;m.querySelectorAll('[data-t5]').forEach(x=>x.setAttribute('aria-selected',x===b));m.querySelectorAll('[data-p5]').forEach(p=>p.style.display=p.dataset.p5===ui.t5?'flex':'none')});
+ {const tp=$('#t5prev');if(tp)tp.onclick=()=>$('#cPrev').click()}
+ m.querySelectorAll('[data-fc]').forEach(i=>i.onchange=()=>{C[i.dataset.fc]=i.value;save();vCatalogo(m)});
  m.querySelectorAll('[data-fi]').forEach(i=>i.onchange=e=>{const f=e.target.files[0];if(f)imgToData(f,i.dataset.fi==='siteImg'?1600:1100,d=>{C[i.dataset.fi]=d;save();toast('Imagem carregada');vCatalogo(m)})});
  m.querySelectorAll('[data-fx]').forEach(i=>i.onclick=()=>{const[k1,k2]=i.dataset.fx.split('|');C[k1]='';C[k2]='';save();vCatalogo(m)});
  $('#cIdade').onchange=e=>{C.idade=e.target.value==='1';save()};$('#cEst').onchange=e=>{C.estilo=e.target.value;save()};$('#cFundoIn').onchange=e=>{const f=e.target.files[0];if(f)imgToData(f,1800,d=>{C.capaFundo=d;C.estilo='imagem';save();toast('Imagem de fundo carregada');vCatalogo(m)})};const fx2=$('#cFundoX');if(fx2)fx2.onclick=()=>{C.capaFundo='';if(C.estilo==='imagem')C.estilo='aurora';save();vCatalogo(m)};$('#cLet').onchange=e=>{C.letra=e.target.value;save()};
