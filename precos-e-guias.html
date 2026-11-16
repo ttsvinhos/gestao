@@ -218,7 +218,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v19 · 16/11/2026';
+const APP_VERSAO='v20 · 16/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -395,6 +395,7 @@ async function nvPull(first){if(!nvOn())return false;let ch=false;
   if(r.apagada){if(l&&NV.h[r.id]===hs(l)){DB.guias.splice(i,1);delete NV.h[r.id];ch=true}return}
   const rh=hs(r.doc);if(!l){DB.guias.push(r.doc);NV.h[r.id]=rh;ch=true}
   else{const lh=hs(l);if(lh===NV.h[r.id]&&rh!==lh){DB.guias[i]=r.doc;NV.h[r.id]=rh;ch=true}}});
+ if(!DB.exemplo&&cliDeGuias(DB))ch=true;
  const mr=await nvReq('movimentos?select=id,prod_id,data,tipo,un,guia_id,nota&limit=100000');
  const antes=DB.mov.map(m=>m.id+'='+m.un).sort().join(),loc={};DB.mov.forEach(m=>loc[m.id]=m);
  const pend=m=>NV.mvh[m.id]!==m.un,nm=[],mvh={};
@@ -415,11 +416,12 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)nvSync(fal
 function syncGuiaStock(G){DB.mov=(DB.mov||[]).filter(m=>m.guiaId!==G.id);const ag={};
  G.linhas.forEach(l=>{if(!l.prodId)return;const un=Math.round(l.qt*(l.unid==='emb'?(l.embQt||1):1));if(un)ag[l.prodId]=(ag[l.prodId]||0)+un});
  Object.keys(ag).forEach(pid=>DB.mov.push({id:'g:'+G.id+':'+pid,prodId:pid,data:G.data,tipo:'saida',un:-ag[pid],guiaId:G.id,nota:gNum(G)}))}
+function cliDeGuias(d){let n=0;d.cli=d.cli||[];const nz=x=>(x||'').trim().toLowerCase(),n9=x=>(x||'').replace(/\s/g,'');
+ (d.guias||[]).slice().sort((x,y)=>String(x.data).localeCompare(String(y.data))).forEach(g=>{const c=g.cliente;if(!c||c.id)return;const nm=(c.nome||'').trim();if(!nm)return;
+  const ex=d.cli.find(k=>(n9(c.nif)&&n9(c.nif)!=='999999990'&&n9(k.nif)===n9(c.nif))||nz(k.nome)===nz(nm));
+  if(ex){c.id=ex.id}else{const id='c'+Math.random().toString(36).slice(2,10);d.cli.push({id,nome:nm,nif:c.nif||'',morada:c.morada||'',tel:'',desc:0,regiao:null,obs:''});c.id=id;n++}});return n}
 function migrate(d){const S=d.set;
- if(S&&!S.cliBack&&!d.exemplo){S.cliBack=1;d.cli=d.cli||[];const nz=x=>(x||'').trim().toLowerCase(),nf9=x=>(x||'').replace(/\s/g,'');
-  (d.guias||[]).slice().sort((x,y)=>String(x.data).localeCompare(String(y.data))).forEach(g=>{const c=g.cliente||{},n=(c.nome||'').trim();if(!n)return;
-   const ex=d.cli.find(k=>k.id===c.id)||d.cli.find(k=>(nf9(c.nif)&&nf9(c.nif)!=='999999990'&&nf9(k.nif)===nf9(c.nif))||nz(k.nome)===nz(n));
-   if(ex){if(g.cliente)g.cliente.id=ex.id}else{const id=c.id||('c'+Math.random().toString(36).slice(2,10));d.cli.push({id,nome:n,nif:c.nif||'',morada:c.morada||'',tel:'',desc:0,regiao:null,obs:''});if(g.cliente)g.cliente.id=id}})}
+ if(!d.exemplo)cliDeGuias(d);
  if(S&&!S.catOpt){(d.prod||[]).forEach(p=>{p.pub=p.pub!==false});S.catOpt=1}
  if(!Array.isArray(d.mov))d.mov=[];
  if(!Array.isArray(d.desp))d.desp=[];
