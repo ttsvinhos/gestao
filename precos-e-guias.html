@@ -218,7 +218,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v14 · 16/11/2026';
+const APP_VERSAO='v15 · 16/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -843,7 +843,7 @@ function vCatalogo(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
   <li>Aqui, em <b>Catálogo / Site</b>, escolhe o que aparece e como fica. A página está ordenada pelo uso diário: 1 Produtos, 2 Destaques, 3 Campanhas, 4 Cabazes; depois, o que se configura uma vez (5 Textos e aspeto), 6 Castas e 7 Gostos.</li>
   <li>Carregue em <b>Gerar página (ficheiro)</b>: descarrega o ficheiro <b>index.html</b>. É esse o site.</li>
   <li>Os preços ficam fixos no momento em que gera. <b>Sempre que mudar preços, destaques ou cabazes, gere outra vez</b> e substitua o ficheiro antigo.</li>
-  <li><b>Atualizar só os preços, sem gerar outro ficheiro</b>: depois de ligar o site à base de dados (uma vez), carregue em <b>☁ Publicar preços no site</b> (no topo desta página). Só o administrador, com sessão iniciada, pode. Para mudar textos, imagens ou aspeto, continua a ser preciso gerar o <b>index.html</b>.</li></ol>
+  <li><b>Atualizar o site sem gerar outro ficheiro</b>: depois de ligar o site à base de dados (uma vez), carregue em <b>☁ Publicar alterações no site</b> (no topo desta página). Envia preços, produtos, textos, imagens e destaques. Só o administrador, com sessão iniciada, pode. Só se mudar a estrutura do site (uma versão nova da app) é preciso gerar outro <b>index.html</b>.</li></ol>
 
   <h4>Antes de começar (uma vez)</h4>
   <ol><li>Em <b>Definições → Empresa</b>: nome, logótipo e <b>telefone</b>. O telefone é o número do botão verde do WhatsApp no site (sem telefone, o botão não aparece).</li>
@@ -952,7 +952,7 @@ function vCatalogo(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
   <li><b>Imagem de cabaz vazia</b>: o link deixou de funcionar; carregue a foto como ficheiro.</li>
   <li><b>Um produto não aparece</b>: confirme a coluna “Publicar” na tabela.</li></ul>
   </div></div>
- <div class="bar" style="margin:12px 0 4px"><button class="btn" id="cPrev">Pré-visualizar</button><button class="btn pri" id="cGen">Gerar página (ficheiro)</button><button class="btn" id="pubNow" title="Envia os preços e produtos atuais para o site online, sem gerar outro ficheiro">☁ Publicar preços no site</button></div>
+ <div class="bar" style="margin:12px 0 4px"><button class="btn" id="cPrev">Pré-visualizar</button><button class="btn pri" id="cGen">Gerar página (ficheiro)</button><button class="btn" id="pubNow" title="Envia para o site online tudo o que mudou (preços, produtos, textos, imagens, destaques), sem gerar outro ficheiro">☁ Publicar alterações no site</button></div>
  <div class="sub" id="pubSt" style="margin-bottom:4px"></div>
  <div class="sub" style="margin-bottom:6px">A página gerada é um único ficheiro HTML. Pode enviá-lo ou pô-lo num alojamento quando quiser. Os preços ficam fixos no momento em que gera, por isso gere outra vez depois de os alterar.</div>
  <h3 style="margin:18px 0 8px">1 · Produtos no catálogo</h3>
@@ -1055,7 +1055,7 @@ function vCatalogo(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
   if(!nvOn()||NV.papel!=='admin'){st.textContent='Só o administrador, com sessão iniciada, pode publicar no site.';return}
   st.textContent='A publicar…';
   try{await nvUp('catalogo','id',{id:1,dados:siteData(),atualizado:new Date().toISOString()});
-   st.textContent='Publicado às '+new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})+'. O site mostra os preços novos na próxima abertura.'}
+   st.textContent='Publicado às '+new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})+'. O site mostra as alterações na próxima abertura.'}
   catch(e){st.textContent='Não foi possível publicar ('+(e.message||'erro')+'). O SQL de preparação já foi corrido no Supabase?'}};
  $('#cTop').onchange=e=>{C.topN=+e.target.value;save()};
  $('#gTest').onclick=async()=>{const{u,k}=nvCfg();
