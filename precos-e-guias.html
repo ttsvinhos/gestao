@@ -218,7 +218,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v22 · 16/11/2026';
+const APP_VERSAO='v23 · 16/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -368,7 +368,8 @@ async function nvPerfil(){try{const p=await nvReq('perfis?select=papel,paginas,a
 const nvDocDados=()=>({forn:DB.forn,prod:DB.prod,cli:DB.cli,castas:DB.castas,set:DB.set,ivaReg:DB.ivaReg,exemplo:DB.exemplo});
 function nvJuntaCli(cd){const nz=x=>(x||'').trim().toLowerCase(),n9=x=>(x||'').replace(/\s/g,'');let add=0;
  ((cd&&cd.cli)||[]).forEach(k=>{if(!k||!(k.nome||'').trim())return;
-  if(DB.cli.some(x=>x.id===k.id||nz(x.nome)===nz(k.nome)||(n9(k.nif)&&n9(k.nif)!=='999999990'&&n9(x.nif)===n9(k.nif))))return;DB.cli.push(k);add++});return add}
+  if(DB.cli.some(x=>x.id===k.id||nz(x.nome)===nz(k.nome)||(n9(k.nif)&&n9(k.nif)!=='999999990'&&n9(x.nif)===n9(k.nif))))return;DB.cli.push(k);add++});
+ [['cat'],['empresa']].forEach(([g])=>{const cs=cd&&cd.set&&cd.set[g],ls=DB.set[g]=DB.set[g]||{};if(cs)Object.keys(cs).forEach(k=>{if(typeof cs[k]==='string'&&cs[k].indexOf('data:image')===0&&!ls[k]){ls[k]=cs[k];add++}})});return add}
 async function nvPush(){if(!nvOn())return;
  if(NV.papel==='admin'){let doc=nvDocDados(),hh=hs(doc);
   if(hh!==NV.dh){try{const c=await nvReq('app_dados?id=eq.1&select=doc,versao');if(c&&c[0]&&c[0].versao>(NV.dv||0)&&nvJuntaCli(c[0].doc)){doc=nvDocDados();hh=hs(doc)}}catch(e){}
