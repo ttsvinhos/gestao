@@ -218,7 +218,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v30 · 16/11/2026';
+const APP_VERSAO='v31 · 16/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -593,7 +593,7 @@ function editProd(id){
   </div><div class="calc" id="calc"></div></div></div>
   <div id="pf" ${PT==='ficha'?'':'hidden'}>
    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-bottom:12px"><div><div class="photo" id="foto">${P.ficha.foto?`<img src="${P.ficha.foto}" alt="">`:'Sem foto'}</div>
-    <div style="display:flex;gap:6px;margin-top:6px"><label class="btn sm" style="flex-direction:row;color:var(--ink)">Foto<input type="file" id="fotoIn" accept="image/*" hidden></label>${P.ficha.foto?'<button class="btn sm" id="fotoX">Remover</button>':''}</div>${P.ficha.foto?`<div style="margin-top:6px;display:flex;flex-direction:column;gap:6px;max-width:210px"><button class="btn${P.ficha.fotoOrig?' sm':' pri'}" id="fotoCut" title="Tira o fundo da imagem (funciona melhor com fundo liso)">${P.ficha.fotoOrig?'✂ Refazer sem fundo':'✂ Retirar fundo da imagem'}</button>${P.ficha.fotoOrig?`<label class="sub" style="display:flex;gap:6px;align-items:center">Sensibilidade<input type="range" id="fotoTol" min="8" max="90" value="${P.ficha.fotoTol||40}" style="flex:1"></label><button class="btn sm" id="fotoRep">Repor fundo original</button>`:''}</div>`:''}</div>
+    <div style="display:flex;gap:6px;margin-top:6px"><label class="btn sm" style="flex-direction:row;color:var(--ink)">Foto<input type="file" id="fotoIn" accept="image/*" hidden></label>${P.ficha.foto?'<button class="btn sm" id="fotoX">Remover</button>':''}</div>${P.ficha.foto?`<div style="margin-top:6px;display:flex;flex-direction:column;gap:6px;max-width:210px"><button class="btn sm" id="fotoCut" title="Tira o fundo da imagem (funciona melhor com fundo liso)">${P.ficha.fotoOrig?'✂ Refazer sem fundo':'✂ Retirar fundo'}</button>${P.ficha.fotoOrig?`<label class="sub" style="display:flex;gap:6px;align-items:center">Sensibilidade<input type="range" id="fotoTol" min="8" max="90" value="${P.ficha.fotoTol||40}" style="flex:1"></label><button class="btn sm" id="fotoRep">Repor fundo original</button>`:''}</div>`:''}</div>
     <div class="grid w2" style="flex:1;min-width:240px">${fld('Produtor','ficha.produtor',P)}${fld('Região / denominação','ficha.regiao',P)}${fld('Castas / variedades (separe com vírgulas)','ficha.casta',P)}${fld('Ano / colheita','ficha.ano',P)}${fld('Teor alcoólico / acidez','ficha.alc',P)}${fld('Temperatura de serviço','ficha.temp',P)}${fld('Estágio / conservação','ficha.guarda',P)}</div></div>
    ${area('Descrição do produto (texto de apresentação)','ficha.desc',P)}
    <div class="grid w2" style="margin-top:12px">${fld('Preço promocional no site (€) — vazio = sem promoção','ficha.promo',P,{ph:'ex.: 9,90'})}${fld('Etiqueta da promoção (ex.: Black Friday)','ficha.promoTxt',P,{ph:'Promoção'})}</div>
@@ -614,7 +614,7 @@ function editProd(id){
   document.querySelectorAll('[data-pt]').forEach(b=>b.onclick=()=>{PT=b.dataset.pt;document.querySelectorAll('[data-pt]').forEach(x=>x.setAttribute('aria-selected',x===b));$('#pp').hidden=PT!=='preco';$('#pf').hidden=PT!=='ficha'});
   $('#f_fornId').addEventListener('change',()=>draw());
   $('#f_ivaTipo').addEventListener('change',()=>draw());
-  $('#fotoIn').onchange=e=>{const fl=e.target.files[0];if(fl)imgToData(fl,500,d=>{P.ficha.foto=d;P.ficha.fotoOrig='';draw();toast('Foto carregada. Se quiser tirar o fundo, carregue em «✂ Retirar fundo da imagem»')})};
+  $('#fotoIn').onchange=e=>{const fl=e.target.files[0];if(fl)imgToData(fl,500,d=>{P.ficha.foto=d;P.ficha.fotoOrig='';draw();toast('Foto carregada. Se quiser tirar o fundo, carregue em «✂ Retirar fundo»')})};
   const fx=$('#fotoX');if(fx)fx.onclick=()=>{P.ficha.foto='';P.ficha.fotoOrig='';draw()};
   const cut=(tol)=>{const orig=P.ficha.fotoOrig||P.ficha.foto;tiraFundo(orig,tol,d=>{P.ficha.fotoOrig=orig;P.ficha.fotoTol=tol;P.ficha.foto=d;draw()})};
   const fc=$('#fotoCut');if(fc)fc.onclick=()=>cut(+(P.ficha.fotoTol||40));
