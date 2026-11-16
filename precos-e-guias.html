@@ -218,7 +218,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v27 · 16/11/2026';
+const APP_VERSAO='v28 · 16/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -883,7 +883,7 @@ function vCatalogo0(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
   <li>Para um produto em particular, na tabela “Produtos no catálogo” use a coluna <b>Mostrar preço</b> (Mostrar / Ocultar / Seguir geral).</li></ol>
 
   <h4>3. Que produtos aparecem</h4>
-  <ol><li>Na tabela “Produtos no catálogo”, a coluna <b>Publicar</b>: só aparecem os produtos que marcou com <b>+ Catálogo</b> na página Produtos. Aqui pode ainda retirar um.</li><li><b>Cores e imagens</b> (secção 5): pode pôr uma cor, uma imagem ou as duas no fundo da foto do cartão, no fundo do texto do cartão e no fundo de todo o site, além do banner da capa. Depois carregue em <b>☁ Publicar alterações no site</b>.</li>
+  <ol><li>Na tabela “Produtos no catálogo”, a coluna <b>Publicar</b>: só aparecem os produtos que marcou com <b>+ Catálogo</b> na página Produtos. Aqui pode ainda retirar um.</li><li><b>Cores e imagens</b> (secção 5): pode pôr uma cor, uma imagem ou as duas no fundo da foto do cartão, no fundo do texto do cartão e no fundo de todo o site, além do banner da capa. Depois carregue em <b>☁ Publicar alterações no site</b>. Cada imagem carregada mostra uma miniatura para confirmar. Se mudar o desenho do site (não só preços e imagens), use <b>Gerar página</b> e carregue o <code>index.html</code> novo no GitHub do catálogo.</li>
   <li>Em <b>Foto / ficha</b> abre a ficha do produto, onde carrega a foto e pode usar <b>✂ Retirar fundo</b>.</li></ol>
 
   <h4>4. Aspeto</h4>
@@ -1006,18 +1006,16 @@ function vCatalogo0(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
   <label>Confirmação de idade ao abrir<select id="cIdade"><option value="1" ${C.idade!==false?'selected':''}>Ativa (18 anos)</option><option value="0" ${C.idade===false?'selected':''}>Desativada</option></select></label></div>
   </div>
   <div data-p5="c" style="display:${(ui.t5||'a')==='c'?'flex':'none'};flex-direction:column;gap:14px">
-  <div class="sub">O banner é a imagem grande do topo, por trás do título.</div>
   <h4 style="margin:6px 0 0;font-size:1rem">C · Capa (banner)</h4><div class="sub" style="margin-top:-8px">O banner é a imagem grande do topo, por trás do título.</div>
   <div class="grid"><label>Fundo da capa<select id="cEst"><option value="aurora" ${(C.estilo||'aurora')==='aurora'?'selected':''}>Aurora (âmbar)</option><option value="ondas" ${C.estilo==='ondas'?'selected':''}>Ondas (vermelho e preto)</option><option value="vinha" ${C.estilo==='vinha'?'selected':''}>Vinha (uvas e folhas)</option><option value="imagem" ${C.estilo==='imagem'?'selected':''}>Imagem (a minha)</option></select></label>
-  <label>Imagem do banner ${C.capaFundo?'(carregada ✓)':''}<span style="display:flex;gap:6px"><input type="file" id="cFundoIn" accept="image/*" style="flex:1">${C.capaFundo?'<button class="btn sm" id="cFundoX" type="button">Remover</button>':''}</span></label>
-  <label>Letra do título<select id="cLet"><option value="fina" ${(C.letra||'fina')==='fina'?'selected':''}>Fina, maiúsculas (com ramo de louro)</option><option value="serifa" ${C.letra==='serifa'?'selected':''}>Clássica (serifa)</option><option value="manuscrita" ${C.letra==='manuscrita'?'selected':''}>Manuscrita</option></select></label></div></div></div>
+  <label>Imagem do banner ${C.capaFundo?'(carregada ✓)':''}<span style="display:flex;gap:6px;align-items:center">${C.capaFundo?`<img src="${C.capaFundo}" alt="miniatura" style="height:44px;width:64px;object-fit:cover;border-radius:6px;border:1px solid #bbb;background:#fff;align-self:center">`:''}<input type="file" id="cFundoIn" accept="image/*" style="flex:1">${C.capaFundo?'<button class="btn sm" id="cFundoX" type="button">Remover</button>':''}</span></label>
+  <label>Letra do título<select id="cLet"><option value="fina" ${(C.letra||'fina')==='fina'?'selected':''}>Fina, maiúsculas (com ramo de louro)</option><option value="serifa" ${C.letra==='serifa'?'selected':''}>Clássica (serifa)</option><option value="manuscrita" ${C.letra==='manuscrita'?'selected':''}>Manuscrita</option></select></label>
   </div>
   <div data-p5="d" style="display:${(ui.t5||'a')==='d'?'flex':'none'};flex-direction:column;gap:14px">
-  <div class="sub">Cada linha aceita uma cor, uma imagem, ou as duas (a imagem fica por cima da cor). «Limpar» volta ao original.</div>
   <h4 style="margin:6px 0 0;font-size:1rem">D · Cartões dos produtos e fundo do site</h4><div class="sub" style="margin-top:-8px">Cada linha aceita uma cor, uma imagem, ou as duas (a imagem fica por cima da cor). «Limpar» volta ao original.</div>
   <div class="grid"><label>Fundo atrás dos produtos<select id="cFp"><option value="">Nenhum (creme)</option><option value="rosa">Branco com brilho rosa</option><option value="nuvens">Nuvens rosa</option><option value="pastel">Pastel arco-íris</option><option value="aguarela">Aguarela rosa-bordeaux</option><option value="dourado">Dourado suave (aguarela)</option><option value="degrade">Degradê rosa-bordeaux</option><option value="meu">A minha imagem…</option></select></label>
-  ${C.fundoProd==='meu'?`<label>A minha imagem ${C.fundoProdImg?'(carregada ✓)':''}<input type="file" id="cFpIn" accept="image/*"></label>`:''}</div>
-  <div style="display:flex;flex-direction:column;gap:8px">${[['Fundo da foto do cartão','fotoCor','fotoImg'],['Fundo do texto do cartão (por baixo da foto)','txtCor','txtImg'],['Fundo de todo o site','siteCor','siteImg']].map(([t,kc,ki])=>`<div class="fr" style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-top:1px solid var(--line,#e5e5e5);padding-top:8px"><b style="min-width:230px">${t}</b><input type="color" data-fc="${kc}" value="${C[kc]||'#ffffff'}" style="width:44px;height:34px;padding:2px" aria-label="Cor"><input type="file" accept="image/*" data-fi="${ki}" style="flex:1;min-width:150px"><button class="btn sm" type="button" data-fx="${kc}|${ki}">Limpar</button><span class="sub">${C[kc]?'cor ✓ ':''}${C[ki]?'imagem ✓':''}${!C[kc]&&!C[ki]?'(original)':''}</span></div>`).join('')}</div>
+  ${C.fundoProd==='meu'?`<label>A minha imagem ${C.fundoProdImg?'(carregada ✓)':''}<span style="display:flex;gap:6px;align-items:center">${C.fundoProdImg?`<img src="${C.fundoProdImg}" alt="miniatura" style="height:44px;width:64px;object-fit:cover;border-radius:6px;border:1px solid #bbb;background:#fff;align-self:center">`:''}<input type="file" id="cFpIn" accept="image/*" style="flex:1"></span></label>`:''}
+  <div style="display:flex;flex-direction:column;gap:8px">${[['Fundo da foto do cartão','fotoCor','fotoImg'],['Fundo do texto do cartão (por baixo da foto)','txtCor','txtImg'],['Fundo de todo o site','siteCor','siteImg']].map(([t,kc,ki])=>`<div class="fr" style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-top:1px solid var(--line,#e5e5e5);padding-top:8px"><b style="min-width:230px">${t}</b><input type="color" data-fc="${kc}" value="${C[kc]||'#ffffff'}" style="width:44px;height:34px;padding:2px" aria-label="Cor"><input type="file" accept="image/*" data-fi="${ki}" style="flex:1;min-width:150px"><button class="btn sm" type="button" data-fx="${kc}|${ki}">Limpar</button>${C[ki]?`<img src="${C[ki]}" alt="miniatura" style="height:44px;width:64px;object-fit:cover;border-radius:6px;border:1px solid #bbb;background:#fff;align-self:center">`:''}<span class="sub">${C[kc]?'cor ✓ ':''}${C[ki]?'imagem ✓':''}${!C[kc]&&!C[ki]?'(original)':''}</span></div>`).join('')}</div>
   </div>
  </div>
  </details>
