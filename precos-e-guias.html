@@ -218,7 +218,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v34 · 16/11/2026';
+const APP_VERSAO='v35 · 16/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -1186,7 +1186,7 @@ h1,h2,h3{font-family:var(--fs);font-weight:600;letter-spacing:-.02em}
 .cabecalho .c{padding-block:20px}
 .marca img{width:132px;height:132px;object-fit:contain;border-radius:0;background:transparent;padding:0;box-shadow:none;mix-blend-mode:normal;filter:none}@media(max-width:560px){.marca img{width:92px;height:92px}}
 .marca-texto{font-family:var(--fs);font-size:1.25rem;font-weight:600}
-.marca-texto small{font-family:var(--fd);color:var(--ouro);letter-spacing:.2em}
+.marca-texto small{font-family:var(--fd);color:var(--ouro);letter-spacing:.12em;font-size:.58rem;font-weight:600;margin-top:3px}
 .menu{align-items:center;gap:6px;background:rgba(255,255,255,.75);backdrop-filter:blur(10px);padding:5px;border-radius:999px;box-shadow:var(--sh);border:1px solid var(--ln)}
 .menu a{border-radius:999px;padding:8px 18px;transition:background .2s,color .2s}
 .menu a:hover{background:var(--azul);color:#fff}
