@@ -231,7 +231,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v48 · 18/11/2026';
+const APP_VERSAO='v49 · 18/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -378,11 +378,16 @@ async function nvLogin(email,pw){const{u,k}=nvCfg();if(!u||!k)throw new Error('P
  if(p[0].ativo===false){NV={};nvSave();throw new Error('O seu acesso está desativado. Fale com o dono.')}
  NV.papel=p[0].papel;NV.paginas=p[0].paginas||[];nvSave();await nvSync(true)}
 async function nvPerfil(){try{const p=await nvReq('perfis?select=papel,paginas,ativo');if(p&&p[0]){if(p[0].ativo===false){try{localStorage.removeItem(KEY);localStorage.removeItem(NVK)}catch(e){}location.reload();return}NV.papel=p[0].papel;NV.paginas=p[0].paginas||[];nvSave()}}catch(e){}}
-const nvDocDados=()=>({forn:DB.forn,prod:DB.prod,cli:DB.cli,castas:DB.castas,set:DB.set,ivaReg:DB.ivaReg,exemplo:DB.exemplo});
-function nvJuntaCli(cd){const nz=x=>(x||'').trim().toLowerCase(),n9=x=>(x||'').replace(/\s/g,'');let add=0;
- ((cd&&cd.cli)||[]).forEach(k=>{if(!k||!(k.nome||'').trim())return;
+const nvDocDados=()=>{nvStamp();return{forn:DB.forn,prod:DB.prod,cli:DB.cli,castas:DB.castas,set:DB.set,ivaReg:DB.ivaReg,exemplo:DB.exemplo,apag:DB.apag}};
+const nvSel=['prod','cli','forn'];
+function nvStamp(){DB.apag=DB.apag||{};nvSel.forEach(g=>(DB[g]||[]).forEach(x=>{const r=Object.assign({},x);delete r._t;delete r._h;const h=hs(r);if(x._h===undefined){x._h=h;x._t=x._t||0}else if(x._h!==h){x._h=h;x._t=Date.now()}}))}
+function nvNovos(cd){let add=0;if(!cd)return 0;const ap=Object.assign({},cd.apag||{},DB.apag||{});Object.keys(cd.apag||{}).forEach(k=>{if(!(DB.apag||{})[k]||cd.apag[k]>DB.apag[k])ap[k]=cd.apag[k]});DB.apag=ap;
+ nvSel.forEach(g=>{const L=DB[g]=DB[g]||[];(cd[g]||[]).forEach(cr=>{if(!cr||!cr.id)return;const dt=ap[cr.id];if(dt&&dt>=(cr._t||0))return;const i=L.findIndex(x=>x.id===cr.id);if(i<0)return;if((cr._t||0)>(L[i]._t||0)){L[i]=cr;add++}});
+  for(let i=L.length-1;i>=0;i--){const dt=ap[L[i].id];if(dt&&dt>(L[i]._t||0)){L.splice(i,1);add++}}});return add}
+function nvJuntaCli(cd){const nz=x=>(x||'').trim().toLowerCase(),n9=x=>(x||'').replace(/\s/g,'');let add=0;nvStamp();add+=nvNovos(cd);
+ ((cd&&cd.cli)||[]).forEach(k=>{if(!k||!(k.nome||'').trim())return;if(DB.apag&&DB.apag[k.id])return;
   if(DB.cli.some(x=>x.id===k.id||nz(x.nome)===nz(k.nome)||(n9(k.nif)&&n9(k.nif)!=='999999990'&&n9(x.nif)===n9(k.nif))))return;DB.cli.push(k);add++});
- ((cd&&cd.prod)||[]).forEach(cp=>{if(cp&&cp.id&&!DB.prod.some(x=>x.id===cp.id)){DB.prod.push(cp);add++;return}if(!cp||!cp.ficha)return;const lp=DB.prod.find(x=>x.id===cp.id);if(!lp)return;lp.ficha=lp.ficha||{};Object.keys(cp.ficha).forEach(k=>{const cv=cp.ficha[k],lv=lp.ficha[k];if(typeof cv==='string'&&cv&&!(typeof lv==='string'&&lv)&&k!=='fotoOrig'){lp.ficha[k]=cv;add++}})});
+ ((cd&&cd.prod)||[]).forEach(cp=>{if(cp&&cp.id&&!DB.prod.some(x=>x.id===cp.id)){if(!(DB.apag&&DB.apag[cp.id])){DB.prod.push(cp);add++}return}if(!cp||!cp.ficha)return;const lp=DB.prod.find(x=>x.id===cp.id);if(!lp)return;lp.ficha=lp.ficha||{};Object.keys(cp.ficha).forEach(k=>{const cv=cp.ficha[k],lv=lp.ficha[k];if(typeof cv==='string'&&cv&&!(typeof lv==='string'&&lv)&&k!=='fotoOrig'){lp.ficha[k]=cv;add++}})});
  [['cat'],['empresa']].forEach(([g])=>{const cs=cd&&cd.set&&cd.set[g],ls=DB.set[g]=DB.set[g]||{};if(cs)Object.keys(cs).forEach(k=>{if(typeof cs[k]==='string'&&cs[k].indexOf('data:image')===0&&!ls[k]){ls[k]=cs[k];add++}})});return add}
 async function nvPush(){if(!nvOn())return;
  if(NV.papel==='admin'){let doc=nvDocDados(),hh=hs(doc);
@@ -407,7 +412,7 @@ async function nvPull(first){if(!nvOn())return false;let ch=false;
  if(dd&&dd[0]&&dd[0].versao>(NV.dv||0)){const adm=NV.papel==='admin';let adopt=!adm;
   if(adm&&first&&window.__entrada)adopt=true;
   else if(adm&&first&&!(DB.prod||[]).length)adopt=true;
-  if(adopt){const d=dd[0].doc;DB.forn=d.forn||[];DB.prod=d.prod||[];DB.cli=d.cli||[];DB.castas=d.castas||[];DB.set=d.set||DB.set;DB.ivaReg=d.ivaReg;DB.exemplo=d.exemplo;migrate(DB);NV.dv=dd[0].versao;NV.dh=hs(nvDocDados());ch=true}
+  if(adopt){const d=dd[0].doc;DB.forn=d.forn||[];DB.prod=d.prod||[];DB.cli=d.cli||[];DB.castas=d.castas||[];DB.set=d.set||DB.set;DB.ivaReg=d.ivaReg;DB.exemplo=d.exemplo;DB.apag=d.apag||{};migrate(DB);NV.dv=dd[0].versao;NV.dh=hs(nvDocDados());ch=true}
   else if(adm){if(nvJuntaCli(dd[0].doc))ch=true;if(first)NV.dv=dd[0].versao}
   else if(first){NV.dv=dd[0].versao}}
  const gr=await nvReq('guias?select=id,doc,apagada');
@@ -425,7 +430,7 @@ async function nvPull(first){if(!nvOn())return false;let ch=false;
  DB.mov=nm;NV.mvh=mvh;if(DB.mov.map(m=>m.id+'='+m.un).sort().join()!==antes)ch=true;
  nvSave();return ch}
 let nvBusy=false;
-async function nvSync(first){if(!nvOn()||nvBusy)return;nvBusy=true;let ch=false;
+async function nvSync(first){if(!nvOn()||nvBusy)return;nvBusy=true;let ch=false;if(DB.exemplo&&(DB.guias.length||DB.prod.some(p=>p.ficha&&p.ficha.foto))){DB.exemplo=false;try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}
  try{await nvPerfil();if(first){ch=await nvPull(first)}else{await nvPush();ch=await nvPull(first)}if(ch||first){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}await nvPush();NV.ultima=Date.now();NV.erro='';nvSave()}
  catch(e){NV.erro=e.message||'Falhou a ligação';nvSave()}
  nvBusy=false;
@@ -653,7 +658,7 @@ function editProd(id){
    const rd=()=>{const c=P.embQt>1?(pn(($('#stC')||{}).value)||0):0,u=pn($('#stU').value)||0;return Math.round(c*(P.embQt>1?P.embQt:1)+u)};
    $('#stIn').onclick=()=>{const of=Math.max(0,Math.round(pn(($('#stO')||{}).value)||0)),un=rd()+of;if(un<=0){toast('Indique caixas, unidades ou oferta');return}const mv={id:uid(),prodId:P.id,data:$('#stD').value||today(),tipo:'entrada',un};if(of)mv.oferta=of;DB.mov.push(mv);save();draw();render();toast('Entrada registada')};
    $('#stSet').onclick=()=>{const alvo=rd(),d=alvo-stockUn(P.id);if(!d){toast('O stock já é esse valor');return}DB.mov.push({id:uid(),prodId:P.id,data:$('#stD').value||today(),tipo:'ajuste',un:d});save();draw();render();toast('Stock acertado')}}
-  if(orig){$('#mDel').onclick=e=>confirmBtn(e.target,()=>{DB.prod=DB.prod.filter(x=>x.id!==P.id);DB.mov=(DB.mov||[]).filter(m=>m.prodId!==P.id);save();closeModal();render()});
+  if(orig){$('#mDel').onclick=e=>confirmBtn(e.target,()=>{(DB.apag=DB.apag||{})[P.id]=Date.now();DB.prod=DB.prod.filter(x=>x.id!==P.id);DB.mov=(DB.mov||[]).filter(m=>m.prodId!==P.id);save();closeModal();render()});
    $('#mDup').onclick=()=>{const c=clone(P);c.id=uid();c.nome+=' (cópia)';DB.prod.push(c);save();closeModal();render();editProd(c.id)}}
  };
  function updCalc(){const c=calc(P),S=DB.set,el=$('#calc');if(!el)return;
@@ -700,7 +705,7 @@ function editForn(id){
  $('#rtU').onclick=()=>{const r=rt();if(r==null)return;F.transp=r4(r);$('#f_transp').value=nf(F.transp)};
  if(orig){$('#ajB').onclick=e=>{const v=pn($('#ajP').value);if(v==null){toast('Indique a percentagem');return}
    confirmBtn(e.target,()=>{DB.prod.filter(p=>p.fornId===F.id).forEach(p=>{p.tabela=r4((p.tabela||0)*(1+v/100))});save();toast('Preços de tabela atualizados');closeModal();render()})};
-  $('#mDel').onclick=e=>{if(DB.prod.some(p=>p.fornId===F.id)){toast('Este fornecedor ainda tem produtos');return}confirmBtn(e.target,()=>{DB.forn=DB.forn.filter(x=>x.id!==F.id);save();closeModal();render()})}}
+  $('#mDel').onclick=e=>{if(DB.prod.some(p=>p.fornId===F.id)){toast('Este fornecedor ainda tem produtos');return}confirmBtn(e.target,()=>{(DB.apag=DB.apag||{})[F.id]=Date.now();DB.forn=DB.forn.filter(x=>x.id!==F.id);save();closeModal();render()})}}
  $('#mSave').onclick=()=>{if(!F.nome.trim()){toast('Indique o nome');return}const i=DB.forn.findIndex(x=>x.id===F.id);if(i>=0)DB.forn[i]=F;else DB.forn.push(F);save();closeModal();render();toast('Fornecedor guardado')}}
 
 /* =================== CLIENTES =================== */
@@ -717,7 +722,7 @@ function editCli(id){
  ${fld('Nome','nome',C)}<div class="grid">${fld('NIF','nif',C)}${fld('Telefone','tel',C)}${fld('Desconto habitual (%)','desc',C,{t:'pct'})}</div>${fld('Morada','morada',C)}<label>Região de entrega (IVA nas guias)<select id="f_regiao" data-k="regiao" data-t="text">${regOpts(C.regiao,'Habitual ('+regNome(DB.set.regiao)+')')}</select></label>${area('Notas','obs',C)}</div>
  <footer><div>${orig?'<button class="btn danger" id="mDel">Apagar</button>':''}</div><button class="btn pri" id="mSave">Guardar</button></footer>`);
  $('#mx').onclick=closeModal;
- if(orig)$('#mDel').onclick=e=>confirmBtn(e.target,()=>{DB.cli=DB.cli.filter(x=>x.id!==C.id);save();closeModal();render()});
+ if(orig)$('#mDel').onclick=e=>confirmBtn(e.target,()=>{(DB.apag=DB.apag||{})[C.id]=Date.now();DB.cli=DB.cli.filter(x=>x.id!==C.id);save();closeModal();render()});
  $('#mSave').onclick=()=>{if(!C.nome.trim()){toast('Indique o nome');return}const i=DB.cli.findIndex(x=>x.id===C.id);if(i>=0)DB.cli[i]=C;else DB.cli.push(C);save();closeModal();render();toast('Cliente guardado')}}
 
 /* =================== GUIAS =================== */
