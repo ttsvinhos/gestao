@@ -231,7 +231,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v50 · 18/11/2026';
+const APP_VERSAO='v51 · 18/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -1813,7 +1813,7 @@ function mostraEntrada(msg){
    try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}
    g.remove();document.body.classList.remove('gated');sairBtn();render()}
   catch(e){window.__entrada=false;st.textContent=e.message;bt.disabled=false}}}
-function sairBtn(){const h=document.querySelector('header.top');if(!h||document.getElementById('btnSair'))return;const b=document.createElement('button');b.id='btnSair';b.className='btn sm';b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>Sair';b.title='Terminar sessão neste aparelho';b.onclick=sairNuvem;h.appendChild(b)}
+function sairBtn(){const h=document.querySelector('header.top');if(!h||document.getElementById('btnSair'))return;if(!document.getElementById('btnSite')){const l=document.createElement('a');l.id='btnSite';l.className='btn sm';l.href='https://ttsvinhos.github.io/catalogo/';l.target='_blank';l.rel='noopener';l.title='Abrir o site do catálogo (novo separador)';l.style.cssText='text-decoration:none;display:inline-flex;align-items:center;gap:6px;width:auto;flex:0 0 auto;padding:5px 12px;border-radius:999px;font-size:.78rem;font-weight:600;white-space:nowrap;margin-left:auto;margin-right:8px;color:var(--ink)';l.textContent='🌐 Ver site';h.appendChild(l)}const b=document.createElement('button');b.id='btnSair';b.className='btn sm';b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>Sair';b.title='Terminar sessão neste aparelho';b.onclick=sairNuvem;h.appendChild(b)}
 /* ---------- convite: criar palavra-passe com o link recebido ---------- */
 function lerHashConvite(){const h=location.hash.replace(/^#/,'');if(!h)return null;const q=new URLSearchParams(h);
  if(q.get('error'))return{erro:'O link expirou ou já foi usado. Peça ao dono um link novo.'};
