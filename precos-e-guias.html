@@ -231,7 +231,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v47 · 18/11/2026';
+const APP_VERSAO='v48 · 18/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -382,7 +382,7 @@ const nvDocDados=()=>({forn:DB.forn,prod:DB.prod,cli:DB.cli,castas:DB.castas,set
 function nvJuntaCli(cd){const nz=x=>(x||'').trim().toLowerCase(),n9=x=>(x||'').replace(/\s/g,'');let add=0;
  ((cd&&cd.cli)||[]).forEach(k=>{if(!k||!(k.nome||'').trim())return;
   if(DB.cli.some(x=>x.id===k.id||nz(x.nome)===nz(k.nome)||(n9(k.nif)&&n9(k.nif)!=='999999990'&&n9(x.nif)===n9(k.nif))))return;DB.cli.push(k);add++});
- ((cd&&cd.prod)||[]).forEach(cp=>{if(!cp||!cp.ficha)return;const lp=DB.prod.find(x=>x.id===cp.id);if(!lp)return;lp.ficha=lp.ficha||{};Object.keys(cp.ficha).forEach(k=>{const cv=cp.ficha[k],lv=lp.ficha[k];if(typeof cv==='string'&&cv&&!(typeof lv==='string'&&lv)&&k!=='fotoOrig'){lp.ficha[k]=cv;add++}})});
+ ((cd&&cd.prod)||[]).forEach(cp=>{if(cp&&cp.id&&!DB.prod.some(x=>x.id===cp.id)){DB.prod.push(cp);add++;return}if(!cp||!cp.ficha)return;const lp=DB.prod.find(x=>x.id===cp.id);if(!lp)return;lp.ficha=lp.ficha||{};Object.keys(cp.ficha).forEach(k=>{const cv=cp.ficha[k],lv=lp.ficha[k];if(typeof cv==='string'&&cv&&!(typeof lv==='string'&&lv)&&k!=='fotoOrig'){lp.ficha[k]=cv;add++}})});
  [['cat'],['empresa']].forEach(([g])=>{const cs=cd&&cd.set&&cd.set[g],ls=DB.set[g]=DB.set[g]||{};if(cs)Object.keys(cs).forEach(k=>{if(typeof cs[k]==='string'&&cs[k].indexOf('data:image')===0&&!ls[k]){ls[k]=cs[k];add++}})});return add}
 async function nvPush(){if(!nvOn())return;
  if(NV.papel==='admin'){let doc=nvDocDados(),hh=hs(doc);
@@ -406,10 +406,10 @@ async function nvPull(first){if(!nvOn())return false;let ch=false;
  const dd=await nvReq('app_dados?id=eq.1&select=doc,versao');
  if(dd&&dd[0]&&dd[0].versao>(NV.dv||0)){const adm=NV.papel==='admin';let adopt=!adm;
   if(adm&&first&&window.__entrada)adopt=true;
-  else if(adm&&first)adopt=confirm('Já existem dados na nuvem.\n\nOK = usar os dados da nuvem (substitui os deste aparelho).\nCancelar = manter os deste aparelho e enviá-los para a nuvem.');
+  else if(adm&&first&&!(DB.prod||[]).length)adopt=true;
   if(adopt){const d=dd[0].doc;DB.forn=d.forn||[];DB.prod=d.prod||[];DB.cli=d.cli||[];DB.castas=d.castas||[];DB.set=d.set||DB.set;DB.ivaReg=d.ivaReg;DB.exemplo=d.exemplo;migrate(DB);NV.dv=dd[0].versao;NV.dh=hs(nvDocDados());ch=true}
-  else if(first){NV.dv=dd[0].versao}
-  else if(adm){if(nvJuntaCli(dd[0].doc))ch=true}}
+  else if(adm){if(nvJuntaCli(dd[0].doc))ch=true;if(first)NV.dv=dd[0].versao}
+  else if(first){NV.dv=dd[0].versao}}
  const gr=await nvReq('guias?select=id,doc,apagada');
  gr.forEach(r=>{const i=DB.guias.findIndex(g=>g.id===r.id),l=DB.guias[i];
   if(r.apagada){if(l&&NV.h[r.id]===hs(l)){DB.guias.splice(i,1);delete NV.h[r.id];ch=true}return}
