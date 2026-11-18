@@ -231,7 +231,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v45 · 18/11/2026';
+const APP_VERSAO='v46 · 18/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -1111,7 +1111,7 @@ function vCatalogo0(m){const C=DB.set.cat;cur=C;afterInput=()=>save();
  $('#pubNow').onclick=async()=>{const st=$('#pubSt');
   if(!nvOn()||NV.papel!=='admin'){st.textContent='Só o administrador, com sessão iniciada, pode publicar no site.';return}
   st.textContent='A publicar…';
-  try{const dd=siteData();if(!dd.fundo){try{const cr=await nvReq('catalogo?id=eq.1&select=dados');const cd=cr&&cr[0]&&cr[0].dados;if(cd&&cd.fundo&&dd.est==='imagem'){dd.fundo=cd.fundo;if(!C.capaFundo){C.capaFundo=cd.fundo;save()}}}catch(e){}}await nvUp('catalogo','id',{id:1,dados:dd,atualizado:new Date().toISOString()});
+  try{const dd=siteData();try{const cr0=await nvReq('catalogo?id=eq.1&select=dados');const cd0=cr0&&cr0[0]&&cr0[0].dados;if(cd0&&Array.isArray(cd0.items)&&Array.isArray(dd.items)){const vz=v=>v===undefined||v===null||v===''||(Array.isArray(v)&&!v.length);let n=0;dd.items.forEach(li=>{const ci=cd0.items.find(x=>x.id===li.id);if(!ci)return;if(ci.fi&&typeof ci.fi==='object'&&li.fi&&typeof li.fi==='object')Object.keys(ci.fi).forEach(q=>{if(vz(li.fi[q])&&!vz(ci.fi[q])){li.fi[q]=ci.fi[q];n++}})});if(n)toast('Mantive no site '+n+' dados (fotos/fichas) que este computador não tinha.')}}catch(e){}if(!dd.fundo){try{const cr=await nvReq('catalogo?id=eq.1&select=dados');const cd=cr&&cr[0]&&cr[0].dados;if(cd&&cd.fundo&&dd.est==='imagem'){dd.fundo=cd.fundo;if(!C.capaFundo){C.capaFundo=cd.fundo;save()}}}catch(e){}}await nvUp('catalogo','id',{id:1,dados:dd,atualizado:new Date().toISOString()});
    st.textContent='Publicado às '+new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})+'. O site mostra as alterações na próxima abertura.'}
   catch(e){st.textContent='Não foi possível publicar ('+(e.message||'erro')+'). O SQL de preparação já foi corrido no Supabase?'}};
  $('#cTop').onchange=e=>{C.topN=+e.target.value;save()};
