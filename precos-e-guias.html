@@ -231,7 +231,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v52 · 18/11/2026';
+const APP_VERSAO='v53 · 18/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -380,8 +380,9 @@ async function nvLogin(email,pw){const{u,k}=nvCfg();if(!u||!k)throw new Error('P
 async function nvPerfil(){try{const p=await nvReq('perfis?select=papel,paginas,ativo');if(p&&p[0]){if(p[0].ativo===false){try{localStorage.removeItem(KEY);localStorage.removeItem(NVK)}catch(e){}location.reload();return}NV.papel=p[0].papel;NV.paginas=p[0].paginas||[];nvSave()}}catch(e){}}
 const nvDocDados=()=>{nvStamp();return{forn:DB.forn,prod:DB.prod,cli:DB.cli,castas:DB.castas,set:DB.set,ivaReg:DB.ivaReg,exemplo:DB.exemplo,apag:DB.apag}};
 const nvSel=['prod','cli','forn'];
-function nvStamp(){DB.apag=DB.apag||{};nvSel.forEach(g=>(DB[g]||[]).forEach(x=>{const r=Object.assign({},x);delete r._t;delete r._h;const h=hs(r);if(x._h===undefined){x._h=h;x._t=x._t||0}else if(x._h!==h){x._h=h;x._t=Date.now()}}))}
-function nvNovos(cd){let add=0;if(!cd)return 0;const ap=Object.assign({},cd.apag||{},DB.apag||{});Object.keys(cd.apag||{}).forEach(k=>{if(!(DB.apag||{})[k]||cd.apag[k]>DB.apag[k])ap[k]=cd.apag[k]});DB.apag=ap;
+const nvGrp=['cat','empresa'];
+function nvStamp(){DB.apag=DB.apag||{};nvGrp.forEach(g=>{const o=DB.set&&DB.set[g];if(!o)return;const r=Object.assign({},o);delete r._t;delete r._h;const h=hs(r);if(o._h===undefined){o._h=h;o._t=o._t||0}else if(o._h!==h){o._h=h;o._t=Date.now()}});nvSel.forEach(g=>(DB[g]||[]).forEach(x=>{const r=Object.assign({},x);delete r._t;delete r._h;const h=hs(r);if(x._h===undefined){x._h=h;x._t=x._t||0}else if(x._h!==h){x._h=h;x._t=Date.now()}}))}
+function nvNovos(cd){let add=0;if(!cd)return 0;nvGrp.forEach(g=>{const cg=cd.set&&cd.set[g],lg=DB.set&&DB.set[g];if(cg&&lg&&(cg._t||0)>(lg._t||0)){DB.set[g]=cg;add++}});const ap=Object.assign({},cd.apag||{},DB.apag||{});Object.keys(cd.apag||{}).forEach(k=>{if(!(DB.apag||{})[k]||cd.apag[k]>DB.apag[k])ap[k]=cd.apag[k]});DB.apag=ap;
  nvSel.forEach(g=>{const L=DB[g]=DB[g]||[];(cd[g]||[]).forEach(cr=>{if(!cr||!cr.id)return;const dt=ap[cr.id];if(dt&&dt>=(cr._t||0))return;const i=L.findIndex(x=>x.id===cr.id);if(i<0)return;if((cr._t||0)>(L[i]._t||0)){L[i]=cr;add++}});
   for(let i=L.length-1;i>=0;i--){const dt=ap[L[i].id];if(dt&&dt>(L[i]._t||0)){L.splice(i,1);add++}}});return add}
 function nvJuntaCli(cd){const nz=x=>(x||'').trim().toLowerCase(),n9=x=>(x||'').replace(/\s/g,'');let add=0;nvStamp();add+=nvNovos(cd);
