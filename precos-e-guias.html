@@ -217,7 +217,7 @@ function exemplos(){const d=blank();d.exemplo=true;
 let DB;
 function load(){try{const r=localStorage.getItem(KEY);if(r){DB=JSON.parse(r);migrate(DB);DB.set.cat=Object.assign({titulo:'',subtitulo:'',intro:'',aviso:'',vantagens:'',vinhos:'Tinto, Branco, Rosé, Espumante',precos:false,iva:true},DB.set.cat||{});DB.castas=DB.castas||[];return}}catch(e){}
  DB=_pg(exemplos());try{migrate(DB)}catch(e){}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){let ok=false;try{(DB.prod||[]).forEach(p=>{if(p.ficha&&p.ficha.fotoOrig)p.ficha.fotoOrig=''});localStorage.setItem(KEY,JSON.stringify(DB));ok=true;toast('Memória do navegador cheia: libertei as cópias originais das fotos para guardar as imagens.')}catch(e2){}if(!ok)toast('ATENÇÃO: não foi possível guardar neste navegador (memória cheia). Faça uma cópia de segurança.')}try{nvAgenda()}catch(e){}try{bkSoon()}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){let ok=false;try{(DB.prod||[]).forEach(p=>{if(p.ficha&&p.ficha.fotoOrig)p.ficha.fotoOrig=''});localStorage.setItem(KEY,JSON.stringify(DB));ok=true;toast('Memória do navegador cheia: libertei as cópias originais das fotos para guardar as imagens.')}catch(e2){}if(!ok)toast('ATENÇÃO: não foi possível guardar neste navegador (memória cheia). Faça uma cópia de segurança.')}try{presMexeu()}catch(e){}try{nvAgenda()}catch(e){}try{bkSoon()}catch(e){}}
 
 /* ---------- IVA por região ---------- */
 const REG=[['c','Continente'],['m','Madeira'],['a','Açores']];
@@ -231,7 +231,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v49 · 18/11/2026';
+const APP_VERSAO='v50 · 18/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -430,11 +430,34 @@ async function nvPull(first){if(!nvOn())return false;let ch=false;
  DB.mov=nm;NV.mvh=mvh;if(DB.mov.map(m=>m.id+'='+m.un).sort().join()!==antes)ch=true;
  nvSave();return ch}
 let nvBusy=false;
-async function nvSync(first){if(!nvOn()||nvBusy)return;nvBusy=true;let ch=false;if(DB.exemplo&&(DB.guias.length||DB.prod.some(p=>p.ficha&&p.ficha.foto))){DB.exemplo=false;try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}
- try{await nvPerfil();if(first){ch=await nvPull(first)}else{await nvPush();ch=await nvPull(first)}if(ch||first){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}await nvPush();NV.ultima=Date.now();NV.erro='';nvSave()}
- catch(e){NV.erro=e.message||'Falhou a ligação';nvSave()}
+async function nvSync(first){if(!nvOn()||nvBusy)return;nvBusy=true;let ch=false;const nvIni=Date.now();if(DB.exemplo&&(DB.guias.length||DB.prod.some(p=>p.ficha&&p.ficha.foto))){DB.exemplo=false;try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}
+ try{await nvPerfil();if(first){ch=await nvPull(first)}else{await nvPush();ch=await nvPull(first)}if(ch||first){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}await nvPush();NV.ultima=Date.now();NV.erro='';nvSave();if(presEdit<=nvIni&&nvPend){nvPend=false;nvInd('☁ Guardado na nuvem',true)}}
+ catch(e){NV.erro=e.message||'Falhou a ligação';nvSave();if(nvPend)nvInd('⚠ Não consegui guardar na nuvem. Não feche a página.',false)}
  nvBusy=false;
  if(!$('#modal').classList.contains('on')&&!ui.guia&&(ch||ui.tab==='config'))render()}
+
+/* Presença: quem está na página e quem está a atualizar */
+let presEdit=0,presT=null;
+const presLS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}};
+function presQuem(){let n=presLS('tts.quem');if(!n){n=(prompt('Como se chama? (aparece aos outros quando estiver na página, ex.: Paulo ou Trindade)','')||'').trim();if(n)presLS('tts.quem',n)}return n||'Outro membro'}
+function presId(){let i=presLS('tts.pid');if(!i){i=Math.random().toString(36).slice(2,10);presLS('tts.pid',i)}return i}
+function presBar(txt,aviso){let b=document.getElementById('presBar');if(!txt){if(b)b.remove();return}
+ if(!b){b=document.createElement('div');b.id='presBar';b.setAttribute('role','status');b.style.cssText='position:sticky;top:0;z-index:9999;text-align:center;padding:9px 14px;font:600 .92rem system-ui,sans-serif;border-bottom:1px solid #d9b800';document.body.insertBefore(b,document.body.firstChild)}
+ b.style.background=aviso?'#ffe14d':'#fff3b0';b.style.color='#4a3b00';b.textContent=txt}
+async function nvPres(){if(!nvOn()||!NV.sess||document.getElementById('gate'))return;try{const eu=presId(),agora=Date.now();
+ await nvReq('presenca?on_conflict=id',{method:'POST',h:{Prefer:'resolution=merge-duplicates,return=minimal'},body:{id:eu,nome:presQuem(),visto:new Date(agora).toISOString(),editou:(agora-presEdit<20000)?new Date(presEdit).toISOString():null}});
+ const L=await nvReq('presenca?select=id,nome,editou&visto=gt.'+encodeURIComponent(new Date(agora-60000).toISOString())+'&id=neq.'+encodeURIComponent(eu));
+ const ed=(L||[]).filter(x=>x.editou&&agora-new Date(x.editou).getTime()<25000);
+ if(ed.length)presBar('⚠ A página está em atualização: '+ed.map(x=>x.nome).join(', ')+' está a fazer alterações. Espere uns segundos antes de mexer.',true);
+ else if(L&&L.length)presBar(L.map(x=>x.nome).join(', ')+(L.length>1?' estão':' está')+' na página.',false);
+ else presBar('')}catch(e){}}
+let nvPend=false;
+function nvInd(t,ok){let b=document.getElementById('nvInd');if(!b){b=document.createElement('div');b.id='nvInd';b.style.cssText='position:fixed;left:12px;bottom:12px;z-index:9998;padding:6px 12px;border-radius:999px;font:600 .8rem system-ui,sans-serif;box-shadow:0 2px 8px #0003;transition:opacity .4s';document.body.appendChild(b)}b.style.opacity='1';b.style.background=ok?'#e3f6e6':'#ffe14d';b.style.color=ok?'#1d5a2a':'#4a3b00';b.textContent=t;clearTimeout(b._t);if(ok)b._t=setTimeout(()=>{b.style.opacity='0'},4000)}
+window.addEventListener('beforeunload',e=>{if(nvPend&&nvOn()){e.preventDefault();e.returnValue=''}});
+function presMexeu(){nvPend=true;if(nvOn())nvInd('⏳ A guardar na nuvem…',false);presEdit=Date.now();clearTimeout(presT);presT=setTimeout(nvPres,2500)}
+setInterval(()=>{if(nvOn()&&!document.hidden)nvPres()},15000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)nvPres()});
+setTimeout(nvPres,4000);
 let nvT=null;function nvAgenda(){if(!nvOn())return;clearTimeout(nvT);nvT=setTimeout(()=>nvSync(false),1500)}
 setInterval(()=>{if(nvOn()&&!document.hidden)nvSync(false)},45000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)nvSync(false)});
