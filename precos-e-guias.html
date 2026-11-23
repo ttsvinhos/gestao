@@ -231,7 +231,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v54 · 18/11/2026';
+const APP_VERSAO='v56 · 23/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -392,7 +392,7 @@ function nvJuntaCli(cd){const nz=x=>(x||'').trim().toLowerCase(),n9=x=>(x||'').r
  [['cat'],['empresa']].forEach(([g])=>{const cs=cd&&cd.set&&cd.set[g],ls=DB.set[g]=DB.set[g]||{};if(cs)Object.keys(cs).forEach(k=>{if(typeof cs[k]==='string'&&cs[k].indexOf('data:image')===0&&!ls[k]){ls[k]=cs[k];add++}})});return add}
 async function nvPush(){if(!nvOn())return;
  if(NV.papel==='admin'){let doc=nvDocDados(),hh=hs(doc);
-  if(hh!==NV.dh){try{const c=await nvReq('app_dados?id=eq.1&select=doc,versao');if(c&&c[0]&&c[0].doc){try{const dia=new Date().toISOString().slice(0,10);await nvReq('app_dados_hist?on_conflict=id',{method:'POST',h:{Prefer:'resolution=ignore-duplicates,return=minimal'},body:{id:dia,doc:c[0].doc,versao:c[0].versao||0}});await nvReq('app_dados_hist?id=lt.'+new Date(Date.now()-30*864e5).toISOString().slice(0,10),{method:'DELETE'})}catch(e){}}if(c&&c[0]&&c[0].versao>(NV.dv||0)&&nvJuntaCli(c[0].doc)){doc=nvDocDados();hh=hs(doc)}}catch(e){}
+  if(hh!==NV.dh){try{const c=await nvReq('app_dados?id=eq.1&select=doc,versao');if(c&&c[0]&&c[0].doc){try{const dia=new Date().toISOString().slice(0,10);await nvReq('app_dados_hist?on_conflict=id',{method:'POST',h:{Prefer:'resolution=ignore-duplicates,return=minimal'},body:{id:dia,doc:c[0].doc,versao:c[0].versao||0}});await nvReq('app_dados_hist?id=lt.'+new Date(Date.now()-30*864e5).toISOString().slice(0,10),{method:'DELETE'})}catch(e){}}if(c&&c[0]&&c[0].versao>(NV.dv||0)&&nvJuntaCli(c[0].doc)){doc=nvDocDados();hh=hs(doc)}if(c&&c[0]&&c[0].doc){const cd=c[0].doc,cp=(cd.prod||[]).length;if((DB.exemplo&&cd.exemplo!==true&&cp>0)||(cp>=5&&DB.prod.length<cp*0.5)){nvPend=false;nvInd('⛔ Bloqueei o envio: este aparelho tem menos dados que a nuvem. Abra a app numa janela anónima ou use «Recuperar da nuvem».',false);throw new Error('Envio bloqueado: dados locais incompletos')}}}catch(e){if(/bloqueado/.test(e.message||''))throw e}
    const v=Date.now(),now=new Date().toISOString();
    await nvUp('app_dados','id',{id:1,doc,versao:v,atualizado:now});
    if(DB.prod.length)await nvUp('alertas_prod','prod_id',DB.prod.map(p=>({prod_id:p.id,nome:[p.nome,p.formato].filter(Boolean).join(' '),min_un:minUn(p),emb_qt:p.embQt>1?p.embQt:1})));
@@ -412,7 +412,7 @@ async function nvPull(first){if(!nvOn())return false;let ch=false;
  const dd=await nvReq('app_dados?id=eq.1&select=doc,versao');
  if(dd&&dd[0]&&dd[0].versao>(NV.dv||0)){const adm=NV.papel==='admin';let adopt=!adm;
   if(adm&&first&&window.__entrada)adopt=true;
-  else if(adm&&first&&!(DB.prod||[]).length)adopt=true;
+  else if(adm&&first&&(!(DB.prod||[]).length||(DB.exemplo&&dd[0].doc&&dd[0].doc.exemplo!==true)))adopt=true;
   if(adopt){const d=dd[0].doc;DB.forn=d.forn||[];DB.prod=d.prod||[];DB.cli=d.cli||[];DB.castas=d.castas||[];DB.set=d.set||DB.set;DB.ivaReg=d.ivaReg;DB.exemplo=d.exemplo;DB.apag=d.apag||{};migrate(DB);NV.dv=dd[0].versao;NV.dh=hs(nvDocDados());ch=true}
   else if(adm){if(nvJuntaCli(dd[0].doc))ch=true;if(first)NV.dv=dd[0].versao}
   else if(first){NV.dv=dd[0].versao}}
@@ -563,10 +563,12 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#modal').classLi
 $('#modal').addEventListener('mousedown',e=>{if(e.target.id==='modal')closeModal()});
 function tiraFundo(src,tol,cb,claro){const im=new Image();im.onload=()=>{const w=im.width,h=im.height,c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(im,0,0);const d=x.getImageData(0,0,w,h),a=d.data;
  /* cor de fundo = média dos 4 cantos */const cs=[[0,0],[w-1,0],[0,h-1],[w-1,h-1]];let R=0,G=0,B=0;cs.forEach(([cx,cy])=>{const i=(cy*w+cx)*4;R+=a[i];G+=a[i+1];B+=a[i+2]});R/=4;G/=4;B/=4;
+ /* proteção: se os 4 cantos não têm a mesma cor (foto sem fundo liso), não corta */if(!claro){const mx=Math.max(...cs.map(([cx,cy])=>{const i=(cy*w+cx)*4;return Math.hypot(a[i]-R,a[i+1]-G,a[i+2]-B)}));if(mx>tol*1.2){cb(src);return}}
  const T=tol*tol*3,dist=i=>{const r=a[i]-R,g=a[i+1]-G,b=a[i+2]-B;return r*r+g*g+b*b},m=new Uint8Array(w*h),st=[];
  const push=(px,py)=>{if(px<0||py<0||px>=w||py>=h)return;const k=py*w+px;if(m[k])return;if(claro){const i=k*4,mx=Math.max(a[i],a[i+1],a[i+2]),mn=Math.min(a[i],a[i+1],a[i+2]);if(mx-mn>26||mn<165)return}else if(dist(k*4)>T)return;m[k]=1;st.push(k)};
  for(let i=0;i<w;i++){push(i,0);push(i,h-1)}for(let j=0;j<h;j++){push(0,j);push(w-1,j)}
  while(st.length){const k=st.pop(),px=k%w,py=(k-px)/w;push(px+1,py);push(px-1,py);push(px,py+1);push(px,py-1)}
+ /* proteção: se o corte apagou mais de 80% da imagem, deixa como estava */if(!claro){let n=0;for(let k=0;k<w*h;k++)if(m[k])n++;if(n>w*h*0.8){cb(src);return}}
  /* limpa o fundo e suaviza a borda */for(let k=0;k<w*h;k++){if(m[k])a[k*4+3]=0}
  const b=new Uint8Array(w*h);for(let py=1;py<h-1;py++)for(let px=1;px<w-1;px++){const k=py*w+px;if(!m[k]&&(m[k-1]||m[k+1]||m[k-w]||m[k+w]))b[k]=1}
  for(let k=0;k<w*h;k++)if(b[k])a[k*4+3]=140;
