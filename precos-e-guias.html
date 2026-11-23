@@ -231,7 +231,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v59 · 23/11/2026';
+const APP_VERSAO='v60 · 23/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -445,12 +445,13 @@ function presId(){let i=presLS('tts.pid');if(!i){i=Math.random().toString(36).sl
 function presBar(txt,aviso){let b=document.getElementById('presBar');if(!txt){if(b)b.remove();return}
  if(!b){b=document.createElement('div');b.id='presBar';b.setAttribute('role','status');b.style.cssText='position:sticky;top:0;z-index:9999;text-align:center;padding:9px 14px;font:600 .92rem system-ui,sans-serif;border-bottom:1px solid #d9b800';document.body.insertBefore(b,document.body.firstChild)}
  b.style.background=aviso?'#ffe14d':'#fff3b0';b.style.color='#4a3b00';b.textContent=txt}
+function presNm(x){const q=String(x.nome||'').split('|');return q[0]+' ('+(q[1]||'versão antiga')+')'}
 async function nvPres(){if(!nvOn()||!NV.sess||document.getElementById('gate'))return;try{const eu=presId(),agora=Date.now();
- await nvReq('presenca?on_conflict=id',{method:'POST',h:{Prefer:'resolution=merge-duplicates,return=minimal'},body:{id:eu,nome:presQuem(),visto:new Date(agora).toISOString(),editou:(agora-presEdit<20000)?new Date(presEdit).toISOString():null}});
+ await nvReq('presenca?on_conflict=id',{method:'POST',h:{Prefer:'resolution=merge-duplicates,return=minimal'},body:{id:eu,nome:presQuem()+'|'+APP_VERSAO.split(' ')[0],visto:new Date(agora).toISOString(),editou:(agora-presEdit<20000)?new Date(presEdit).toISOString():null}});
  const L=await nvReq('presenca?select=id,nome,editou&visto=gt.'+encodeURIComponent(new Date(agora-60000).toISOString())+'&id=neq.'+encodeURIComponent(eu));
  const ed=(L||[]).filter(x=>x.editou&&agora-new Date(x.editou).getTime()<25000);
- if(ed.length)presBar('⚠ A página está em atualização: '+ed.map(x=>x.nome).join(', ')+' está a fazer alterações. Espere uns segundos antes de mexer.',true);
- else if(L&&L.length)presBar(L.map(x=>x.nome).join(', ')+(L.length>1?' estão':' está')+' na página.',false);
+ if(ed.length)presBar('⚠ A página está em atualização: '+ed.map(presNm).join(', ')+' está a fazer alterações. Espere uns segundos antes de mexer.',true);
+ else if(L&&L.length)presBar(L.map(presNm).join(', ')+(L.length>1?' estão':' está')+' na página.',false);
  else presBar('')}catch(e){}}
 /* Aviso de nova versão: abre sozinho em quem tem uma versão antiga */
 let verAviso=false;
