@@ -231,7 +231,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v58 · 23/11/2026';
+const APP_VERSAO='v59 · 23/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -1449,7 +1449,7 @@ body{overflow-x:clip}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
 `;
 const SITE_JS=String.raw`var D=JSON.parse(document.getElementById('d').textContent);
-var CK='cat:'+(D.titulo||'');try{var cc=JSON.parse(localStorage.getItem(CK)||'null');if(cc&&cc.v>(D.v||0))D=cc}catch(x){}
+var CK='cat:'+(D.titulo||'');try{var cc=JSON.parse(localStorage.getItem(CK)||'null');if(cc&&cc.v>(D.v||0))D=cc}catch(x){}try{var c2=JSON.parse(sessionStorage.getItem(CK)||'null');if(c2&&c2.v>(D.v||0))D=c2}catch(x){}
 var cat='',tg='',q='',ord='n',fv=false,favs=[],FK='fav:'+(D.titulo||'');try{favs=JSON.parse(localStorage.getItem(FK)||'[]')}catch(x){}
 var F=new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'});
 var TD=(function(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)})(new Date());
@@ -1465,7 +1465,7 @@ var G=D.gostos,gc={};
 function gcount(k){return gc[D.items[k].id]||0}
 function heart(k){var n=gcount(k);return '<button class="cor'+(n>0?' tem':'')+'" data-h="'+k+'" aria-pressed="'+isF(k)+'" aria-label="Gosto" title="Gosto">'+HEART+'<span class="cn">'+(n>0?n:'')+'</span></button>'}
 function gh(){var h={apikey:G.k,Authorization:'Bearer '+G.k};return h}
-function catLive(){if(!G)return;fetch(G.u+'/rest/v1/catalogo?id=eq.1&select=dados',{headers:gh()}).then(function(r){return r.json()}).then(function(a){var d=a&&a[0]&&a[0].dados;if(d&&d.v>(D.v||0)){try{localStorage.setItem(CK,JSON.stringify(d))}catch(x){return}location.reload()}}).catch(function(){})}
+function catLive(){if(!G)return;fetch(G.u+'/rest/v1/catalogo?id=eq.1&select=dados',{headers:gh()}).then(function(r){return r.json()}).then(function(a){var d=a&&a[0]&&a[0].dados;if(d&&d.v>(D.v||0)){var js=JSON.stringify(d);try{localStorage.setItem(CK,js)}catch(x){try{sessionStorage.setItem(CK,js)}catch(y){return}}location.reload()}}).catch(function(){})}
 function gfetch(){if(!G)return;fetch(G.u+'/rest/v1/gostos?select=produto,total',{headers:gh()}).then(function(r){return r.json()}).then(function(a){if(!Array.isArray(a))return;gc={};a.forEach(function(x){gc[x.produto]=x.total});gupd()}).catch(function(){})}
 function gsend(id,d){if(!G)return;var h=gh();h['Content-Type']='application/json';fetch(G.u+'/rest/v1/rpc/gosto',{method:'POST',headers:h,body:JSON.stringify({p_produto:id,p_delta:d})}).then(function(r){return r.ok?r.json():null}).then(function(t){if(typeof t==='number'){gc[id]=t;gupd()}}).catch(function(){})}
 function topg(){var el=document.getElementById('topg');if(!el)return;if(!G||!D.top.n){el.innerHTML='';return}
