@@ -240,7 +240,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v69 · 24/11/2026';
+const APP_VERSAO='v70 · 24/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -1342,7 +1342,7 @@ input[type=search]{border-radius:999px;padding:12px 20px;background:#fff}
 .hs-img{position:relative;isolation:isolate}.hs-img::before{content:"";position:absolute;z-index:-1;inset:0;margin:auto;width:min(400px,100%);aspect-ratio:1;border-radius:50%;border:1px solid rgba(230,196,126,.38);background:radial-gradient(circle,rgba(255,196,120,.34),rgba(255,196,120,.06) 58%,transparent 72%);box-shadow:0 0 0 30px rgba(230,196,126,.05),0 0 0 64px rgba(230,196,126,.03),0 0 90px rgba(255,170,90,.25);animation:resp 7s ease-in-out infinite alternate}
 .hsl::after{content:"";position:absolute;z-index:-1;left:6%;right:6%;bottom:4%;height:26px;border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,.55),transparent 70%);filter:blur(6px)}
 .hs-img img{filter:drop-shadow(0 30px 22px rgba(0,0,0,.5)) drop-shadow(0 0 40px rgba(255,190,110,.18))}
-.hs .hs-img,.hs.wide .hs-img{background:none;box-shadow:none;overflow:visible}
+.hs .hs-img,.hs.wide .hs-img{background:linear-gradient(165deg,rgba(104,12,38,.82),rgba(52,6,20,.9));box-shadow:0 22px 40px -22px rgba(0,0,0,.6),inset 0 0 0 1px rgba(230,196,126,.28);overflow:hidden;border-radius:26px}.hs .hs-img::before{display:none}
 @keyframes aur{to{background-position:100% 0,0 100%,100% 60%,10% 0,0 0}}
 @keyframes resp{to{transform:scale(1.05);box-shadow:0 0 0 38px rgba(230,196,126,.06),0 0 0 78px rgba(230,196,126,.02),0 0 120px rgba(255,170,90,.35)}}
 .hs.wide .hs-img{height:310px;padding:0;border-radius:26px;overflow:hidden;background:rgba(255,255,255,.06);box-shadow:0 30px 50px -20px rgba(0,0,0,.65),0 0 0 1px rgba(230,196,126,.4),0 0 0 8px rgba(230,196,126,.06)}
