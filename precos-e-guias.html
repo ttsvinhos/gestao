@@ -231,7 +231,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v62 · 24/11/2026';
+const APP_VERSAO='v63 · 24/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -385,14 +385,15 @@ function nvStamp(){DB.apag=DB.apag||{};nvGrp.forEach(g=>{const o=DB.set&&DB.set[
 function nvNovos(cd){let add=0;if(!cd)return 0;nvGrp.forEach(g=>{const cg=cd.set&&cd.set[g],lg=DB.set&&DB.set[g];if(cg&&lg&&(cg._t||0)>(lg._t||0)){DB.set[g]=cg;add++}});const ap=Object.assign({},cd.apag||{},DB.apag||{});Object.keys(cd.apag||{}).forEach(k=>{if(!(DB.apag||{})[k]||cd.apag[k]>DB.apag[k])ap[k]=cd.apag[k]});DB.apag=ap;
  nvSel.forEach(g=>{const L=DB[g]=DB[g]||[];(cd[g]||[]).forEach(cr=>{if(!cr||!cr.id)return;const dt=ap[cr.id];if(dt&&dt>=(cr._t||0))return;const i=L.findIndex(x=>x.id===cr.id);if(i<0)return;if((cr._t||0)>(L[i]._t||0)){L[i]=cr;add++}});
   for(let i=L.length-1;i>=0;i--){const dt=ap[L[i].id];if(dt&&dt>(L[i]._t||0)){L.splice(i,1);add++}}});return add}
-function nvJuntaCli(cd){const nz=x=>(x||'').trim().toLowerCase(),n9=x=>(x||'').replace(/\s/g,'');let add=0;nvStamp();add+=nvNovos(cd);
+const isEx=x=>/\(exemplo\)|^cliente exemplo|^fornecedor exemplo/i.test((x&&x.nome)||'');
+function nvJuntaCli(cd){if(cd)cd=Object.assign({},cd,{prod:(cd.prod||[]).filter(x=>!isEx(x)),cli:(cd.cli||[]).filter(x=>!isEx(x)),forn:(cd.forn||[]).filter(x=>!isEx(x))});const nz=x=>(x||'').trim().toLowerCase(),n9=x=>(x||'').replace(/\s/g,'');let add=0;nvStamp();add+=nvNovos(cd);
  ((cd&&cd.cli)||[]).forEach(k=>{if(!k||!(k.nome||'').trim())return;if(DB.apag&&DB.apag[k.id])return;
   if(DB.cli.some(x=>x.id===k.id||nz(x.nome)===nz(k.nome)||(n9(k.nif)&&n9(k.nif)!=='999999990'&&n9(x.nif)===n9(k.nif))))return;DB.cli.push(k);add++});
  ((cd&&cd.prod)||[]).forEach(cp=>{if(cp&&cp.id&&!DB.prod.some(x=>x.id===cp.id)){if(!(DB.apag&&DB.apag[cp.id])){DB.prod.push(cp);add++}return}if(!cp||!cp.ficha)return;const lp=DB.prod.find(x=>x.id===cp.id);if(!lp)return;lp.ficha=lp.ficha||{};Object.keys(cp.ficha).forEach(k=>{const cv=cp.ficha[k],lv=lp.ficha[k];if(typeof cv==='string'&&cv&&!(typeof lv==='string'&&lv)&&k!=='fotoOrig'){lp.ficha[k]=cv;add++}})});
  [['cat'],['empresa']].forEach(([g])=>{const cs=cd&&cd.set&&cd.set[g],ls=DB.set[g]=DB.set[g]||{};if(cs)Object.keys(cs).forEach(k=>{if(typeof cs[k]==='string'&&cs[k].indexOf('data:image')===0&&!ls[k]){ls[k]=cs[k];add++}})});return add}
 async function nvPush(){if(!nvOn())return;
  if(NV.papel==='admin'){let doc=nvDocDados(),hh=hs(doc);
-  if(hh!==NV.dh){try{const c=await nvReq('app_dados?id=eq.1&select=doc,versao');if(c&&c[0]&&c[0].doc){try{const dia=new Date().toISOString().slice(0,10);await nvReq('app_dados_hist?on_conflict=id',{method:'POST',h:{Prefer:'resolution=ignore-duplicates,return=minimal'},body:{id:dia,doc:c[0].doc,versao:c[0].versao||0}});await nvReq('app_dados_hist?id=lt.'+new Date(Date.now()-30*864e5).toISOString().slice(0,10),{method:'DELETE'})}catch(e){}}if(c&&c[0]&&c[0].doc&&(c[0].versao>(NV.dv||0)||DB.prod.length<(c[0].doc.prod||[]).length*0.5)&&nvJuntaCli(c[0].doc)){doc=nvDocDados();hh=hs(doc)}if(c&&c[0]&&c[0].doc){const cd=c[0].doc,cp=(cd.prod||[]).length;if((DB.exemplo&&cd.exemplo!==true&&cp>0)||(cp>=5&&DB.prod.length<cp*0.5)){nvPend=false;nvInd('⛔ Bloqueei o envio: este aparelho tem menos dados que a nuvem. Abra a app numa janela anónima ou use «Recuperar da nuvem».',false);throw new Error('Envio bloqueado: dados locais incompletos')}}}catch(e){if(/bloqueado/.test(e.message||''))throw e}
+  if(hh!==NV.dh){try{const c=await nvReq('app_dados?id=eq.1&select=doc,versao');if(c&&c[0]&&c[0].doc){try{const dia=new Date().toISOString().slice(0,10);await nvReq('app_dados_hist?on_conflict=id',{method:'POST',h:{Prefer:'resolution=ignore-duplicates,return=minimal'},body:{id:dia,doc:c[0].doc,versao:c[0].versao||0}});await nvReq('app_dados_hist?id=lt.'+new Date(Date.now()-30*864e5).toISOString().slice(0,10),{method:'DELETE'})}catch(e){}}if(c&&c[0]&&c[0].doc&&(c[0].versao>(NV.dv||0)||DB.prod.length<(c[0].doc.prod||[]).length*0.5)&&nvJuntaCli(c[0].doc)){doc=nvDocDados();hh=hs(doc)}if(c&&c[0]&&c[0].doc){const cd=c[0].doc,cp=(cd.prod||[]).length;if(((DB.exemplo||DB.prod.some(isEx)||DB.cli.some(isEx))&&!(cd.prod||[]).some(isEx)&&cp>0)||(cp>=5&&DB.prod.length<cp*0.5)){nvPend=false;nvInd('⛔ Bloqueei o envio: este aparelho tem menos dados que a nuvem. Abra a app numa janela anónima ou use «Recuperar da nuvem».',false);throw new Error('Envio bloqueado: dados locais incompletos')}}}catch(e){if(/bloqueado/.test(e.message||''))throw e}
    const v=Date.now(),now=new Date().toISOString();
    await nvUp('app_dados','id',{id:1,doc,versao:v,atualizado:now});
    if(DB.prod.length)await nvUp('alertas_prod','prod_id',DB.prod.map(p=>({prod_id:p.id,nome:[p.nome,p.formato].filter(Boolean).join(' '),min_un:minUn(p),emb_qt:p.embQt>1?p.embQt:1})));
@@ -410,7 +411,7 @@ async function nvPush(){if(!nvOn())return;
  NV.h=cur;NV.mvh=mv;nvSave()}
 async function nvPull(first){if(!nvOn())return false;let ch=false;
  const dd=await nvReq('app_dados?id=eq.1&select=doc,versao');
- const soEx=!!(dd&&dd[0]&&dd[0].doc&&DB.exemplo&&dd[0].doc.exemplo!==true&&(dd[0].doc.prod||[]).length>0);
+ const soEx=!!(dd&&dd[0]&&dd[0].doc&&(DB.exemplo||DB.prod.some(isEx))&&!(dd[0].doc.prod||[]).some(isEx)&&(dd[0].doc.prod||[]).length>0);
  if(dd&&dd[0]&&(dd[0].versao>(NV.dv||0)||soEx)){const adm=NV.papel==='admin';let adopt=!adm||soEx;
   if(adm&&first&&window.__entrada)adopt=true;
   else if(adm&&first&&(!(DB.prod||[]).length||(DB.exemplo&&dd[0].doc&&dd[0].doc.exemplo!==true)))adopt=true;
@@ -432,7 +433,7 @@ async function nvPull(first){if(!nvOn())return false;let ch=false;
  DB.mov=nm;NV.mvh=mvh;if(DB.mov.map(m=>m.id+'='+m.un).sort().join()!==antes)ch=true;
  nvSave();return ch}
 let nvBusy=false;
-async function nvSync(first){if(!nvOn()||nvBusy)return;nvBusy=true;let ch=false;const nvIni=Date.now();if(DB.exemplo&&(DB.guias.length||DB.prod.some(p=>p.ficha&&p.ficha.foto))){DB.exemplo=false;try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}
+async function nvSync(first){if(!nvOn()||nvBusy)return;nvBusy=true;let ch=false;const nvIni=Date.now();if(DB.exemplo&&!DB.prod.some(isEx)&&(DB.guias.length||DB.prod.some(p=>p.ficha&&p.ficha.foto))){DB.exemplo=false;try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}
  try{await nvPerfil();if(first){ch=await nvPull(first)}else{await nvPush();ch=await nvPull(first)}if(ch||first){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}await nvPush();NV.ultima=Date.now();NV.erro='';nvSave();if(presEdit<=nvIni&&nvPend){nvPend=false;nvInd('☁ Guardado na nuvem',true)}}
  catch(e){NV.erro=e.message||'Falhou a ligação';nvSave();if(nvPend)nvInd('⚠ Não consegui guardar na nuvem. Não feche a página.',false)}
  nvBusy=false;
