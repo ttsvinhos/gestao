@@ -215,9 +215,18 @@ function exemplos(){const d=blank();d.exemplo=true;
  d.cli.push({id:uid(),nome:'Cliente Exemplo, Lda.',nif:'000000000',morada:'Rua Exemplo, 1, 9000-000 Funchal',tel:'',desc:0.05,obs:''});
  return d}
 let DB;
-function load(){try{const r=localStorage.getItem(KEY);if(r){DB=JSON.parse(r);migrate(DB);DB.set.cat=Object.assign({titulo:'',subtitulo:'',intro:'',aviso:'',vantagens:'',vinhos:'Tinto, Branco, Rosé, Espumante',precos:false,iva:true},DB.set.cat||{});DB.castas=DB.castas||[];return}}catch(e){}
+/* armazenamento fiável: IndexedDB (sem o limite pequeno do localStorage) + cópia no localStorage quando cabe */
+const idbP=()=>new Promise((ok,ko)=>{try{const q=indexedDB.open('precosGuias',1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>ok(q.result);q.onerror=()=>ko(q.error)}catch(e){ko(e)}});
+const idbGet=k=>idbP().then(d=>new Promise((ok,ko)=>{const r=d.transaction('kv').objectStore('kv').get(k);r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error)}));
+const idbSet=(k,v)=>idbP().then(d=>new Promise((ok,ko)=>{const t=d.transaction('kv','readwrite');v==null?t.objectStore('kv').delete(k):t.objectStore('kv').put(v,k);t.oncomplete=()=>ok(true);t.onerror=()=>ko(t.error)}));
+let _idbAvisou=false;
+function dbStore(){let s;try{s=JSON.stringify(DB)}catch(e){return}const t=Date.now();
+ idbSet(KEY,{t,s}).catch(()=>{if(!_idbAvisou){_idbAvisou=true;try{toast('ATENÇÃO: este navegador não deixou guardar os dados. Use outra janela ou faça uma cópia de segurança.')}catch(x){}}});
+ try{localStorage.setItem(KEY,s);localStorage.setItem(KEY+'.t',String(t))}catch(e){}}
+function dbClear(){try{idbSet(KEY,null)}catch(e){}try{localStorage.removeItem(KEY);localStorage.removeItem(KEY+'.t')}catch(e){}}
+function load(){try{const r=window.__idbRaw||localStorage.getItem(KEY);if(r){DB=JSON.parse(r);migrate(DB);DB.set.cat=Object.assign({titulo:'',subtitulo:'',intro:'',aviso:'',vantagens:'',vinhos:'Tinto, Branco, Rosé, Espumante',precos:false,iva:true},DB.set.cat||{});DB.castas=DB.castas||[];return}}catch(e){}
  DB=_pg(exemplos());try{migrate(DB)}catch(e){}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){let ok=false;try{(DB.prod||[]).forEach(p=>{if(p.ficha&&p.ficha.fotoOrig)p.ficha.fotoOrig=''});localStorage.setItem(KEY,JSON.stringify(DB));ok=true;toast('Memória do navegador cheia: libertei as cópias originais das fotos para guardar as imagens.')}catch(e2){}if(!ok)toast('ATENÇÃO: não foi possível guardar neste navegador (memória cheia). Faça uma cópia de segurança.')}try{presMexeu()}catch(e){}try{nvAgenda()}catch(e){}try{bkSoon()}catch(e){}}
+function save(){dbStore();try{presMexeu()}catch(e){}try{nvAgenda()}catch(e){}try{bkSoon()}catch(e){}}
 
 /* ---------- IVA por região ---------- */
 const REG=[['c','Continente'],['m','Madeira'],['a','Açores']];
@@ -231,7 +240,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v66 · 24/11/2026';
+const APP_VERSAO='v67 · 24/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -377,7 +386,7 @@ async function nvLogin(email,pw){const{u,k}=nvCfg();if(!u||!k)throw new Error('P
  const p=await nvReq('perfis?select=papel,paginas,ativo');if(!p||!p[0]){NV={};nvSave();throw new Error('Este utilizador ainda não tem acesso. Peça ao dono.')}
  if(p[0].ativo===false){NV={};nvSave();throw new Error('O seu acesso está desativado. Fale com o dono.')}
  NV.papel=p[0].papel;NV.paginas=p[0].paginas||[];nvSave();await nvSync(true)}
-async function nvPerfil(){try{const p=await nvReq('perfis?select=papel,paginas,ativo');if(p&&p[0]){if(p[0].ativo===false){try{localStorage.removeItem(KEY);localStorage.removeItem(NVK)}catch(e){}location.reload();return}NV.papel=p[0].papel;NV.paginas=p[0].paginas||[];nvSave()}}catch(e){}}
+async function nvPerfil(){try{const p=await nvReq('perfis?select=papel,paginas,ativo');if(p&&p[0]){if(p[0].ativo===false){try{dbClear();localStorage.removeItem(NVK)}catch(e){}location.reload();return}NV.papel=p[0].papel;NV.paginas=p[0].paginas||[];nvSave()}}catch(e){}}
 const nvDocDados=()=>{nvStamp();return{forn:DB.forn,prod:DB.prod,cli:DB.cli,castas:DB.castas,set:DB.set,ivaReg:DB.ivaReg,exemplo:DB.exemplo,apag:DB.apag}};
 const nvSel=['prod','cli','forn'];
 const nvGrp=['cat','empresa'];
@@ -434,8 +443,8 @@ async function nvPull(first){if(!nvOn())return false;let ch=false;
  DB.mov=nm;NV.mvh=mvh;if(DB.mov.map(m=>m.id+'='+m.un).sort().join()!==antes)ch=true;
  nvSave();return ch}
 let nvBusy=false;
-async function nvSync(first){if(!nvOn()||nvBusy)return;nvBusy=true;let ch=false;const nvIni=Date.now();if(DB.exemplo&&!DB.prod.some(isEx)&&(DB.guias.length||DB.prod.some(p=>p.ficha&&p.ficha.foto))){DB.exemplo=false;try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}
- try{await nvPerfil();if(first){ch=await nvPull(first)}else{await nvPush();ch=await nvPull(first)}if(ch||first){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}await nvPush();NV.ultima=Date.now();NV.erro='';nvSave();if(presEdit<=nvIni&&nvPend){nvPend=false;nvInd('☁ Guardado na nuvem',true)}}
+async function nvSync(first){if(!nvOn()||nvBusy)return;nvBusy=true;let ch=false;const nvIni=Date.now();if(DB.exemplo&&!DB.prod.some(isEx)&&(DB.guias.length||DB.prod.some(p=>p.ficha&&p.ficha.foto))){DB.exemplo=false;dbStore();}
+ try{await nvPerfil();if(first){ch=await nvPull(first)}else{await nvPush();ch=await nvPull(first)}if(ch||first){dbStore();}await nvPush();NV.ultima=Date.now();NV.erro='';nvSave();if(presEdit<=nvIni&&nvPend){nvPend=false;nvInd('☁ Guardado na nuvem',true)}}
  catch(e){NV.erro=e.message||'Falhou a ligação';nvSave();if(nvPend)nvInd('⚠ Não consegui guardar na nuvem. Não feche a página.',false)}
  nvBusy=false;
  if(!$('#modal').classList.contains('on')&&!ui.guia&&(ch||ui.tab==='config'))render()}
@@ -1818,7 +1827,7 @@ function printTabela(){const L=filtrados();let last=null,h='';
 async function sairNuvem(){
  if(nvOn()){try{await nvSync(false)}catch(e){}
   if(NV.erro&&!confirm('Não foi possível enviar as últimas alterações para a nuvem.\n\nSe sair agora, o que não foi enviado perde-se neste aparelho.\n\nOK = sair mesmo assim.\nCancelar = ficar.'))return}
- try{localStorage.removeItem(KEY);localStorage.removeItem(NVK)}catch(e){}
+ try{dbClear();localStorage.removeItem(NVK)}catch(e){}
  location.reload()}
 function mostraEntrada(msg){
  document.body.classList.add('gated');
@@ -1829,7 +1838,7 @@ function mostraEntrada(msg){
  <button class="btn pri" id="gBt" type="submit">Entrar</button><div class="sub" id="gSt" role="status">${esc(msg||'')}</div><div class="sub">Sem acesso ou esqueceu-se da palavra-passe? Peça ao dono um link novo.</div></form>`;
  document.getElementById('gForm').onsubmit=async ev=>{ev.preventDefault();const st=document.getElementById('gSt'),bt=document.getElementById('gBt');bt.disabled=true;st.textContent='A entrar…';
   try{window.__entrada=true;await nvLogin(document.getElementById('gEm').value.trim(),document.getElementById('gPw').value);window.__entrada=false;
-   try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}
+   dbStore();
    g.remove();document.body.classList.remove('gated');sairBtn();render()}
   catch(e){window.__entrada=false;st.textContent=e.message;bt.disabled=false}}}
 function sairBtn(){const h=document.querySelector('header.top');if(!h||document.getElementById('btnSair'))return;if(!document.getElementById('btnSite')){const l=document.createElement('a');l.id='btnSite';l.className='btn sm';l.href='https://ttsvinhos.github.io/catalogo/';l.target='_blank';l.rel='noopener';l.title='Abrir o site do catálogo (novo separador)';l.style.cssText='text-decoration:none;display:inline-flex;align-items:center;gap:6px;width:auto;flex:0 0 auto;padding:5px 12px;border-radius:999px;font-size:.78rem;font-weight:600;white-space:nowrap;margin-left:auto;margin-right:8px;color:var(--ink)';l.textContent='🌐 Ver site';h.appendChild(l)}const b=document.createElement('button');b.id='btnSair';b.className='btn sm';b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>Sair';b.title='Terminar sessão neste aparelho';b.onclick=sairNuvem;h.appendChild(b)}
@@ -1860,7 +1869,7 @@ function mostraDefinirSenha(c){
    if(p[0].ativo===false){NV={};nvSave();throw new Error('O seu acesso está desativado. Fale com o dono.')}
    NV.papel=p[0].papel;NV.paginas=p[0].paginas||[];nvSave();
    window.__entrada=true;await nvSync(true);window.__entrada=false;
-   try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}
+   dbStore();
    g.remove();document.body.classList.remove('gated');sairBtn();render()}
   catch(e){window.__entrada=false;st.textContent=e.message;bt.disabled=false}}}
 /* ---------- equipa (só o dono): criar acessos e escolher páginas ---------- */
@@ -1905,8 +1914,9 @@ async function eqIniciar(){const L=$('#eqLista');
  pinta()}
 /* ---------- arranque ---------- */
 document.addEventListener('click',e=>{const t=e.target.closest('[data-tab]');if(t)go(t.dataset.tab)});
+(async()=>{try{const r=await Promise.race([idbGet(KEY),new Promise(x=>setTimeout(()=>x(null),3000))]);const lt=+(localStorage.getItem(KEY+'.t')||0);if(r&&r.s&&r.t>lt)window.__idbRaw=r.s}catch(e){}
 load();
-{const cv=lerHashConvite();if(cv){cv.erro?mostraEntrada(cv.erro):mostraDefinirSenha(cv)}else if(nvOn()){sairBtn();render()}else{mostraEntrada()}}
+{const cv=lerHashConvite();if(cv){cv.erro?mostraEntrada(cv.erro):mostraDefinirSenha(cv)}else if(nvOn()){sairBtn();render()}else{mostraEntrada()}}})();
 </script>
 </body>
 </html>
