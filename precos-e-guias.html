@@ -240,7 +240,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v67 · 24/11/2026';
+const APP_VERSAO='v68 · 24/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -1351,7 +1351,7 @@ input[type=search]{border-radius:999px;padding:12px 20px;background:#fff}
 @media (max-width:860px){.hs.wide .hs-img{height:240px}}
 .pedir{margin-top:22px;text-align:center;background:#1fa855;border-color:#1fa855;color:#fff;display:block}.pedir:hover{background:#178a45;border-color:#178a45}
 .wafab{position:fixed;right:18px;bottom:18px;z-index:15;display:inline-flex;align-items:center;gap:8px;padding:13px 18px;border-radius:999px;background:#1fa855;color:#fff;font:700 .9rem var(--fd);text-decoration:none;box-shadow:0 14px 30px -10px rgba(10,80,40,.6);transition:transform .25s}.wafab:hover{transform:translateY(-3px) scale(1.03)}
-.wafv{position:fixed;right:84px;bottom:28px;z-index:14;font:600 .68rem var(--fd);color:#8a7a6a;background:rgba(255,255,255,.75);padding:3px 8px;border-radius:999px;pointer-events:none}
+.wafv{display:block;text-align:center;font:500 .62rem var(--fd);color:rgba(185,169,153,.55);padding:0 0 12px;pointer-events:none;background:#26111a}.wafv:empty{display:none}
 @media (max-width:560px){.wafab span{display:none}.wafab{padding:15px}}
 .cartao-foto:has(img.w){padding:0}.cartao-foto img.w{object-fit:cover;filter:none}.cartao:hover .cartao-foto img.w{transform:scale(1.06)}
 .cort-in .cabs{margin:24px 0 8px}.cabs{margin:34px 0 6px;display:flex;flex-direction:column;align-items:flex-start}
