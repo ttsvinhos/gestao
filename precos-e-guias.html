@@ -240,7 +240,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v68 · 24/11/2026';
+const APP_VERSAO='v69 · 24/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -581,7 +581,7 @@ function tiraFundo(src,tol,cb,claro,op){op=Math.max(0,Math.min(1,+op||0));const 
  const push=(px,py)=>{if(px<0||py<0||px>=w||py>=h)return;const k=py*w+px;if(m[k])return;if(claro){const i=k*4,mx=Math.max(a[i],a[i+1],a[i+2]),mn=Math.min(a[i],a[i+1],a[i+2]);if(mx-mn>26||mn<165)return}else if(dist(k*4)>T)return;m[k]=1;st.push(k)};
  for(let i=0;i<w;i++){push(i,0);push(i,h-1)}for(let j=0;j<h;j++){push(0,j);push(w-1,j)}
  while(st.length){const k=st.pop(),px=k%w,py=(k-px)/w;push(px+1,py);push(px-1,py);push(px,py+1);push(px,py-1)}
- /* proteção: se o corte apagou mais de 80% da imagem, deixa como estava */if(!claro){let n=0;for(let k=0;k<w*h;k++)if(m[k])n++;if(n>w*h*0.8){cb(src);return}}
+ /* proteção: se o corte apagou mais de 80% da imagem, deixa como estava (96%: garrafa fina em fundo branco ocupa pouco) */if(!claro){let n=0;for(let k=0;k<w*h;k++)if(m[k])n++;if(n>w*h*0.96){cb(src);return}}
  /* limpa o fundo e suaviza a borda */for(let k=0;k<w*h;k++){if(m[k])a[k*4+3]=Math.round(255*op)}
  const b=new Uint8Array(w*h);for(let py=1;py<h-1;py++)for(let px=1;px<w-1;px++){const k=py*w+px;if(!m[k]&&(m[k-1]||m[k+1]||m[k-w]||m[k+w]))b[k]=1}
  for(let k=0;k<w*h;k++)if(b[k])a[k*4+3]=Math.round(140+115*op);
@@ -1342,6 +1342,7 @@ input[type=search]{border-radius:999px;padding:12px 20px;background:#fff}
 .hs-img{position:relative;isolation:isolate}.hs-img::before{content:"";position:absolute;z-index:-1;inset:0;margin:auto;width:min(400px,100%);aspect-ratio:1;border-radius:50%;border:1px solid rgba(230,196,126,.38);background:radial-gradient(circle,rgba(255,196,120,.34),rgba(255,196,120,.06) 58%,transparent 72%);box-shadow:0 0 0 30px rgba(230,196,126,.05),0 0 0 64px rgba(230,196,126,.03),0 0 90px rgba(255,170,90,.25);animation:resp 7s ease-in-out infinite alternate}
 .hsl::after{content:"";position:absolute;z-index:-1;left:6%;right:6%;bottom:4%;height:26px;border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,.55),transparent 70%);filter:blur(6px)}
 .hs-img img{filter:drop-shadow(0 30px 22px rgba(0,0,0,.5)) drop-shadow(0 0 40px rgba(255,190,110,.18))}
+.hs .hs-img,.hs.wide .hs-img{background:none;box-shadow:none;overflow:visible}
 @keyframes aur{to{background-position:100% 0,0 100%,100% 60%,10% 0,0 0}}
 @keyframes resp{to{transform:scale(1.05);box-shadow:0 0 0 38px rgba(230,196,126,.06),0 0 0 78px rgba(230,196,126,.02),0 0 120px rgba(255,170,90,.35)}}
 .hs.wide .hs-img{height:310px;padding:0;border-radius:26px;overflow:hidden;background:rgba(255,255,255,.06);box-shadow:0 30px 50px -20px rgba(0,0,0,.65),0 0 0 1px rgba(230,196,126,.4),0 0 0 8px rgba(230,196,126,.06)}
