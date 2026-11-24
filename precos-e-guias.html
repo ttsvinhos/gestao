@@ -231,7 +231,7 @@ function regDe(p){const f=DB.forn.find(x=>x.id===p.fornId)||{};return f.regiao||
 const PAG_DEF='Pronto pagamento\nNumerário\nTransferência bancária\nMultibanco\nMB Way\nA 30 dias\nA 60 dias\nConsignação';
 const pagOpts=()=>String(DB.set.pagLista||'').split('\n').map(x=>x.trim()).filter(Boolean);
 /* ---------- stock ---------- */
-const APP_VERSAO='v64 · 24/11/2026';
+const APP_VERSAO='v65 · 24/11/2026';
 const stockUn=id=>(DB.mov||[]).filter(m=>m.prodId===id).reduce((s,m)=>s+m.un,0);
 const ultEnt=id=>(DB.mov||[]).filter(m=>m.prodId===id&&m.tipo==='entrada').sort((a,b)=>(b.data+b.id).localeCompare(a.data+a.id))[0];
 function fmtSt(p,un){const q=p.embQt>1?p.embQt:0,neg=un<0,a=Math.abs(un);let s;
@@ -401,10 +401,10 @@ async function nvPush(){if(!nvOn())return;
    NV.dh=hh;NV.dv=v;nvSave()}}
  const now=new Date().toISOString(),cur={};DB.guias.forEach(g=>cur[g.id]=hs(g));
  const gu=DB.guias.filter(g=>NV.h[g.id]!==cur[g.id]).map(g=>({id:g.id,doc:g,apagada:false,atualizado:now}));
- Object.keys(NV.h).filter(id=>!(id in cur)).forEach(id=>gu.push({id,doc:{},apagada:true,atualizado:now}));
+ {const fl=Object.keys(NV.h).filter(id=>!(id in cur)),tot=Object.keys(NV.h).length;if(fl.length<=Math.max(1,Math.floor(tot*0.3)))fl.forEach(id=>gu.push({id,doc:{},apagada:true,atualizado:now}));else fl.forEach(id=>delete NV.h[id])}/* proteção: se faltam muitas guias neste aparelho, não apaga na nuvem (podem voltar de lá) */
  if(gu.length)await nvUp('guias','id',gu);
  const mv={};DB.mov.forEach(m=>mv[m.id]=m.un);
- const del=Object.keys(NV.mvh).filter(id=>!(id in mv));
+ let del=Object.keys(NV.mvh).filter(id=>!(id in mv));{const tm=Object.keys(NV.mvh).length;if(del.length>Math.max(1,Math.floor(tm*0.3))){del.forEach(id=>delete NV.mvh[id]);del=[]}}
  if(del.length)await nvReq('movimentos?id=in.('+encodeURIComponent(del.map(x=>'"'+x+'"').join(','))+')',{method:'DELETE'});
  const mu=DB.mov.filter(m=>NV.mvh[m.id]!==m.un).map(m=>({id:m.id,prod_id:m.prodId,data:m.data,tipo:m.tipo,un:m.un,guia_id:m.guiaId||null,nota:m.nota||null}));
  if(mu.length)await nvUp('movimentos','id',mu);
